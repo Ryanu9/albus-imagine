@@ -33,7 +33,6 @@ export function ImageManagerSettings() {
 			fileExtension: "",
 			coverExtension: "",
 			coverFolder: "",
-			enabled: true,
 		};
 		const updated = [...customTypes, newType];
 		setCustomTypes(updated);
@@ -58,7 +57,7 @@ export function ImageManagerSettings() {
 		const extensions = new Set<string>([...SUPPORTED_IMAGE_EXTENSIONS]);
 		// 添加自定义文件类型的扩展名
 		customTypes.forEach((type) => {
-			if (type.fileExtension && type.enabled) {
+			if (type.fileExtension) {
 				extensions.add(type.fileExtension.toLowerCase());
 			}
 		});
@@ -130,41 +129,23 @@ export function ImageManagerSettings() {
 					padding: "12px", 
 					marginBottom: "12px" 
 				}}>
-					<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-						<span style={{ fontWeight: 500 }}>配置 {index + 1}</span>
-						<div style={{ display: "flex", gap: "8px" }}>
-							<button
-								onClick={() => updateCustomFileType(index, { enabled: !type.enabled })}
-								style={{
-									padding: "4px 12px",
-									fontSize: "12px",
-									background: type.enabled ? "var(--interactive-accent)" : "var(--background-modifier-border)",
-									color: type.enabled ? "var(--text-on-accent)" : "var(--text-muted)",
-									border: "none",
-									borderRadius: "4px",
-									cursor: "pointer",
-								}}
-							>
-								{type.enabled ? "已启用" : "已禁用"}
-							</button>
-							<button
-								onClick={() => removeCustomFileType(index)}
-								style={{
-									padding: "4px 12px",
-									fontSize: "12px",
-									background: "var(--background-modifier-error)",
-									color: "var(--text-on-accent)",
-									border: "none",
-									borderRadius: "4px",
-									cursor: "pointer",
-								}}
-							>
-								删除
-							</button>
-						</div>
-					</div>
-
-					<div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+			<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+				<span style={{ fontWeight: 500 }}>配置 {index + 1}</span>
+				<button
+					onClick={() => removeCustomFileType(index)}
+					style={{
+						padding: "4px 12px",
+						fontSize: "12px",
+						background: "var(--background-modifier-error)",
+						color: "var(--text-on-accent)",
+						border: "none",
+						borderRadius: "4px",
+						cursor: "pointer",
+					}}
+				>
+					删除
+				</button>
+			</div>					<div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
 						<div>
 							<label style={{ fontSize: "13px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>
 								文件扩展名（如: agx）

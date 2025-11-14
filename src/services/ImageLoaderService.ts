@@ -19,7 +19,7 @@ export class ImageLoaderService {
 	 * 设置自定义文件类型配置
 	 */
 	setCustomFileTypes(types: CustomFileTypeConfig[]): void {
-		this.customFileTypes = types.filter(t => t.enabled && t.fileExtension && t.coverExtension);
+		this.customFileTypes = types.filter(t => t.fileExtension && t.coverExtension);
 	}
 
 	/**
