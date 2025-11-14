@@ -22,6 +22,8 @@ export interface ImageItem {
 	isCustomType: boolean;
 	/** 自定义文件类型的配置（如果是自定义类型） */
 	customTypeConfig?: CustomFileTypeConfig;
+	/** 封面文件是否缺失（仅对AGX或自定义类型有效） */
+	coverMissing?: boolean;
 	/** 文件统计信息 */
 	stat: {
 		ctime: number;

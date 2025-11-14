@@ -290,6 +290,45 @@
 	filter: invert(1) hue-rotate(180deg);
 }
 
+/* 封面缺失占位符 */
+.image-manager-cover-missing {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	color: var(--text-muted);
+}
+
+.image-manager-cover-missing-content {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+}
+
+.image-manager-cover-missing-icon {
+	width: 20px;
+	height: 20px;
+	opacity: 0.5;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.image-manager-cover-missing-icon svg {
+	width: 20px;
+	height: 20px;
+}
+
+.image-manager-cover-missing-text {
+	font-size: 12px;
+	color: var(--text-muted);
+	opacity: 0.7;
+	white-space: nowrap;
+}
+
 /* 格式标签 */
 .image-manager-format-badge {
 	position: absolute;

@@ -78,15 +78,28 @@ export class ImageGridComponent {
 		// 缩略图容器
 		const thumbnailEl = itemEl.createDiv("image-manager-thumbnail");
 
-		// 图片
-		const imgEl = thumbnailEl.createEl("img");
-		imgEl.addClass("image-manager-thumbnail-image");
-		imgEl.src = getImagePath(image);
-		imgEl.alt = image.name;
+		// 检查封面是否缺失
+		if (image.coverMissing) {
+			// 显示占位图标
+			const placeholderDiv = thumbnailEl.createDiv("image-manager-cover-missing");
+			const contentWrapper = placeholderDiv.createDiv("image-manager-cover-missing-content");
+			const iconDiv = contentWrapper.createEl("span", { cls: "image-manager-cover-missing-icon" });
+			setIcon(iconDiv, "file-x");
+			contentWrapper.createEl("span", {
+				text: "封面缺失",
+				cls: "image-manager-cover-missing-text",
+			});
+		} else {
+			// 图片
+			const imgEl = thumbnailEl.createEl("img");
+			imgEl.addClass("image-manager-thumbnail-image");
+			imgEl.src = getImagePath(image);
+			imgEl.alt = image.name;
 
-		// SVG图片特殊处理 - 只有当显示的封面是 SVG 时才应用
-		if (image.displayFile.extension.toLowerCase() === "svg") {
-			imgEl.addClass("image-manager-svg-image");
+			// SVG图片特殊处理 - 只有当显示的封面是 SVG 时才应用
+			if (image.displayFile.extension.toLowerCase() === "svg") {
+				imgEl.addClass("image-manager-svg-image");
+			}
 		}
 
 		// 格式标签

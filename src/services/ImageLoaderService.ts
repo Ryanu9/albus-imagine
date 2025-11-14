@@ -112,6 +112,7 @@ export class ImageLoaderService {
 		let displayFile = file;
 		let isCustomType = false;
 		let customTypeConfig: CustomFileTypeConfig | undefined = undefined;
+		let coverMissing = false;
 
 		// 对于AGX文件，尝试找到对应的SVG文件
 		if (isAgx) {
@@ -119,6 +120,8 @@ export class ImageLoaderService {
 			const svgFile = this.app.vault.getAbstractFileByPath(svgPath);
 			if (svgFile instanceof TFile) {
 				displayFile = svgFile;
+			} else {
+				coverMissing = true;
 			}
 		} else {
 			// 检查是否为自定义文件类型
@@ -132,6 +135,8 @@ export class ImageLoaderService {
 				const coverFile = this.app.vault.getAbstractFileByPath(coverPath);
 				if (coverFile instanceof TFile) {
 					displayFile = coverFile;
+				} else {
+					coverMissing = true;
 				}
 			}
 		}
@@ -144,6 +149,7 @@ export class ImageLoaderService {
 			isAgx: isAgx,
 			isCustomType: isCustomType,
 			customTypeConfig: customTypeConfig,
+			coverMissing: coverMissing,
 			stat: {
 				ctime: file.stat.ctime,
 				mtime: file.stat.mtime,

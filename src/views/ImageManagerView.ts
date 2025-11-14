@@ -2,7 +2,7 @@
  * 图片管理器视图 - 使用经典的 Obsidian ItemView
  */
 
-import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice, setIcon } from "obsidian";
 import {
 	ImageItem,
 	ImageManagerSettings,
@@ -284,24 +284,44 @@ export class ImageManagerView extends ItemView {
 			};
 			thumbnailEl.style.cursor = "pointer";
 			
-			const img = thumbnailEl.createEl("img", {
-				cls: image.displayFile.extension.toLowerCase() === "svg" ? "image-manager-svg-image" : "image-manager-thumbnail-image",
-			});
-			
-			// 设置图片源
-			const resourcePath = this.app.vault.getResourcePath(image.displayFile);
-			img.src = resourcePath;
-			img.alt = image.name;
-			
-			// 添加加载错误处理
-			img.onerror = () => {
-				console.error("Failed to load image:", image.path);
-				img.src = ""; // 清空src避免持续报错
-				thumbnailEl.createDiv({
-					text: "加载失败",
-					cls: "image-load-error",
+			// 检查封面是否缺失
+			if (image.coverMissing) {
+				// 显示占位图标
+				const placeholderDiv = thumbnailEl.createDiv({
+					cls: "image-manager-cover-missing",
 				});
-			};
+				const contentWrapper = placeholderDiv.createDiv({
+					cls: "image-manager-cover-missing-content",
+				});
+				const iconDiv = contentWrapper.createEl("span", {
+					cls: "image-manager-cover-missing-icon",
+				});
+				// 使用 Obsidian 的 setIcon 添加图标
+				setIcon(iconDiv, "file-x");
+				contentWrapper.createEl("span", {
+					text: "封面缺失",
+					cls: "image-manager-cover-missing-text",
+				});
+			} else {
+				const img = thumbnailEl.createEl("img", {
+					cls: image.displayFile.extension.toLowerCase() === "svg" ? "image-manager-svg-image" : "image-manager-thumbnail-image",
+				});
+				
+				// 设置图片源
+				const resourcePath = this.app.vault.getResourcePath(image.displayFile);
+				img.src = resourcePath;
+				img.alt = image.name;
+				
+				// 添加加载错误处理
+				img.onerror = () => {
+					console.error("Failed to load image:", image.path);
+					img.src = ""; // 清空src避免持续报错
+					thumbnailEl.createDiv({
+						text: "加载失败",
+						cls: "image-load-error",
+					});
+				};
+			}
 
 			// 格式标签 - 右上角显示文件类型
 			const formatBadge = thumbnailEl.createDiv({
