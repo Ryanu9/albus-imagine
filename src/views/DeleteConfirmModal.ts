@@ -26,10 +26,6 @@ export class DeleteConfirmModal extends Modal {
 		const { contentEl } = this;
 		contentEl.addClass("delete-confirm-modal");
 
-		// 标题
-		const titleEl = contentEl.createDiv("delete-confirm-modal-title");
-		titleEl.setText("确认删除");
-
 		// 内容
 		const bodyEl = contentEl.createDiv("delete-confirm-modal-body");
 		
