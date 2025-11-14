@@ -13,8 +13,10 @@ export class HeaderComponent {
 	private app?: App;
 	private currentFolder = "";
 	private showUnreferencedOnly = false;
+	private filteredCount = 0;
 	private onCheckReferences?: () => void;
 	private onToggleUnreferencedFilter?: () => void;
+	private onBatchDelete?: () => void;
 	private onFolderChange?: (folder: string) => void;
 
 	constructor(containerEl: HTMLElement, showFolderSelector = false, app?: App) {
@@ -29,10 +31,12 @@ export class HeaderComponent {
 	setEventHandlers(handlers: {
 		onCheckReferences?: () => void;
 		onToggleUnreferencedFilter?: () => void;
+		onBatchDelete?: () => void;
 		onFolderChange?: (folder: string) => void;
 	}): void {
 		this.onCheckReferences = handlers.onCheckReferences;
 		this.onToggleUnreferencedFilter = handlers.onToggleUnreferencedFilter;
+		this.onBatchDelete = handlers.onBatchDelete;
 		this.onFolderChange = handlers.onFolderChange;
 	}
 
@@ -59,6 +63,9 @@ export class HeaderComponent {
 		// 右侧：操作按钮
 		const rightSection = headerRow.createDiv("image-manager-header-right");
 
+		// 批量删除按钮占位（会在 updateBatchDeleteButton 中动态创建）
+		const batchDeleteContainer = rightSection.createDiv("image-manager-batch-delete-container");
+
 		// 筛选未引用按钮
 		const filterBtn = rightSection.createEl("button", {
 			cls: "image-manager-filter-button",
@@ -69,6 +76,8 @@ export class HeaderComponent {
 			this.showUnreferencedOnly = !this.showUnreferencedOnly;
 			this.onToggleUnreferencedFilter?.();
 			filterBtn.toggleClass("image-manager-filter-button-active", this.showUnreferencedOnly);
+			// 重新渲染以显示/隐藏批量删除按钮
+			this.updateBatchDeleteButton(rightSection);
 		});
 
 		// 检查引用按钮
@@ -80,6 +89,30 @@ export class HeaderComponent {
 		checkRefsBtn.addEventListener("click", () => {
 			this.onCheckReferences?.();
 		});
+	}
+
+	/**
+	 * 更新批量删除按钮
+	 */
+	private updateBatchDeleteButton(rightSection: HTMLElement): void {
+		const container = rightSection.querySelector(".image-manager-batch-delete-container");
+		if (!container) return;
+
+		container.empty();
+
+		// 仅在筛选未引用且有结果时显示
+		if (this.showUnreferencedOnly && this.filteredCount > 0) {
+			const batchDeleteBtn = container.createEl("button", {
+				text: "批量删除",
+				cls: "image-manager-check-refs-button",
+			});
+			batchDeleteBtn.style.background = "var(--text-error)";
+			batchDeleteBtn.style.color = "var(--text-on-accent)";
+			batchDeleteBtn.style.borderColor = "var(--text-error)";
+			batchDeleteBtn.addEventListener("click", () => {
+				this.onBatchDelete?.();
+			});
+		}
 	}
 
 	/**
@@ -190,6 +223,7 @@ export class HeaderComponent {
 		filtered: number,
 		unreferenced?: number
 	): void {
+		this.filteredCount = filtered;
 		let text = `共 ${total} 张图片`;
 
 		if (filtered !== total) {
@@ -201,6 +235,12 @@ export class HeaderComponent {
 		}
 
 		this.statsEl.setText(text);
+
+		// 更新批量删除按钮
+		const rightSection = this.containerEl.querySelector(".image-manager-header-right");
+		if (rightSection) {
+			this.updateBatchDeleteButton(rightSection as HTMLElement);
+		}
 	}
 
 	/**

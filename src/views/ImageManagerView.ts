@@ -15,6 +15,7 @@ import { FileOperationService } from "../services/FileOperationService";
 import { ImagePreviewModal } from "./ImagePreviewModal";
 import { RenameModal } from "./RenameModal";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
+import { BatchDeleteConfirmModal } from "./BatchDeleteConfirmModal";
 import { FolderSuggest } from "../components/FolderSuggest";
 
 export const IMAGE_MANAGER_VIEW_TYPE = "image-manager-view";
@@ -167,6 +168,18 @@ export class ImageManagerView extends ItemView {
 			});
 		}
 
+		// 批量删除按钮（仅在筛选未引用时显示）
+		if (this.showUnreferencedOnly && this.filteredImages.length > 0) {
+			const batchDeleteBtn = rightSection.createEl("button", {
+				text: "批量删除",
+				cls: "image-manager-check-refs-button",
+			});
+			batchDeleteBtn.style.background = "var(--text-error)";
+			batchDeleteBtn.style.color = "var(--text-on-accent)";
+			batchDeleteBtn.style.borderColor = "var(--text-error)";
+			batchDeleteBtn.onclick = () => this.handleBatchDelete();
+		}
+
 		// 筛选按钮
 		const filterBtn = rightSection.createEl("button", {
 			text: "仅未引用",
@@ -179,7 +192,7 @@ export class ImageManagerView extends ItemView {
 			this.applyFilters();
 			this.renderHeader();
 			this.renderGrid();
-		};
+		}
 
 		// 刷新按钮
 		const refreshBtn = rightSection.createEl("button", {
@@ -714,6 +727,55 @@ export class ImageManagerView extends ItemView {
 			extraMessage,
 			async () => {
 				await this.fileOperations.deleteFile(image);
+				await this.refresh();
+			}
+		);
+		modal.open();
+	}
+
+	/**
+	 * 批量删除未引用图片
+	 */
+	private async handleBatchDelete(): Promise<void> {
+		if (this.filteredImages.length === 0) {
+			new Notice("没有要删除的图片");
+			return;
+		}
+
+		// 显示批量删除确认模态框
+		const modal = new BatchDeleteConfirmModal(
+			this.app,
+			this.filteredImages,
+			async () => {
+				const total = this.filteredImages.length;
+				let successCount = 0;
+				let errorCount = 0;
+
+				const notice = new Notice(`正在删除 ${total} 张图片...`, 0);
+
+				// 批量删除
+				for (const image of this.filteredImages) {
+					try {
+						await this.fileOperations.deleteFile(image);
+						successCount++;
+						// 更新进度
+						notice.setMessage(`正在删除: ${successCount}/${total}`);
+					} catch (error) {
+						errorCount++;
+						console.error(`删除文件失败: ${image.path}`, error);
+					}
+				}
+
+				notice.hide();
+
+				// 显示结果
+				if (errorCount === 0) {
+					new Notice(`成功删除 ${successCount} 张图片`);
+				} else {
+					new Notice(`删除完成: 成功 ${successCount} 张, 失败 ${errorCount} 张`);
+				}
+
+				// 刷新列表
 				await this.refresh();
 			}
 		);

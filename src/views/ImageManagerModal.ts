@@ -18,6 +18,7 @@ import { HeaderComponent } from "../components/HeaderComponent";
 import { ImagePreviewModal } from "./ImagePreviewModal";
 import { RenameModal } from "./RenameModal";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
+import { BatchDeleteConfirmModal } from "./BatchDeleteConfirmModal";
 import { ImageLoadCache } from "../models/ImageLoadCache";
 
 export class ImageManagerModal extends Modal {
@@ -84,6 +85,7 @@ export class ImageManagerModal extends Modal {
 		this.headerComponent.setEventHandlers({
 			onCheckReferences: () => this.checkReferences(),
 			onToggleUnreferencedFilter: () => this.toggleUnreferencedFilter(),
+			onBatchDelete: () => this.handleBatchDelete(),
 			onFolderChange: (folder) => this.handleFolderChange(folder),
 		});
 		// 设置初始文件夹值
@@ -327,6 +329,55 @@ export class ImageManagerModal extends Modal {
 				this.referenceChecker.getCache().delete(image.path);
 				this.imageLoadCache.delete(image.path);
 			// 重新加载
+			await this.loadImages();
+		}
+	);
+	modal.open();
+}
+
+/**
+ * 批量删除未引用图片
+ */
+private async handleBatchDelete(): Promise<void> {
+	if (this.filteredImages.length === 0) {
+		new Notice("没有要删除的图片");
+		return;
+	}
+
+	// 显示批量删除确认模态框
+	const modal = new BatchDeleteConfirmModal(
+		this.app,
+		this.filteredImages,
+		async () => {
+			const total = this.filteredImages.length;
+			let successCount = 0;
+			let errorCount = 0;
+
+			const notice = new Notice(`正在删除 ${total} 张图片...`, 0);
+
+			// 批量删除
+			for (const image of this.filteredImages) {
+				try {
+					await this.fileOperations.deleteFile(image);
+					successCount++;
+					// 更新进度
+					notice.setMessage(`正在删除: ${successCount}/${total}`);
+				} catch (error) {
+					errorCount++;
+					console.error(`删除文件失败: ${image.path}`, error);
+				}
+			}
+
+			notice.hide();
+
+			// 显示结果
+			if (errorCount === 0) {
+				new Notice(`成功删除 ${successCount} 张图片`);
+			} else {
+				new Notice(`删除完成: 成功 ${successCount} 张, 失败 ${errorCount} 张`);
+			}
+
+			// 刷新列表
 			await this.loadImages();
 		}
 	);
