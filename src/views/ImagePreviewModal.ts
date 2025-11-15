@@ -146,6 +146,46 @@ export class ImagePreviewModal extends Modal {
 			img.addClass("image-manager-svg-image");
 		}
 
+		// 添加加载错误处理，防止循环加载
+		let loadFailed = false;
+		img.onerror = () => {
+			if (loadFailed) return; // 防止重复处理
+			loadFailed = true;
+			console.warn(`预览图片加载失败: ${this.image.path}`);
+			// 清空 src 防止持续尝试加载
+			img.src = "";
+			img.style.display = "none";
+			// 显示错误提示
+			const errorDiv = imageContainer.createDiv({
+				cls: "image-manager-preview-error",
+			});
+			errorDiv.createEl("div", {
+				text: "⚠️",
+				cls: "image-manager-preview-error-icon",
+			});
+			errorDiv.createEl("div", {
+				text: "图片加载失败",
+				cls: "image-manager-preview-error-text",
+			});
+			errorDiv.createEl("div", {
+				text: "文件可能已损坏、过大或格式不支持",
+				cls: "image-manager-preview-error-hint",
+			});
+		};
+
+		// 添加加载超时处理（15秒）
+		const loadTimeout = setTimeout(() => {
+			if (!img.complete && !loadFailed) {
+				console.warn(`预览图片加载超时: ${this.image.path}`);
+				img.onerror?.(new Event("error"));
+			}
+		}, 15000);
+
+		// 加载成功时清除超时
+		img.onload = () => {
+			clearTimeout(loadTimeout);
+		};
+
 		// 添加滚轮缩放功能
 		imageContainer.addEventListener("wheel", (e: WheelEvent) => {
 			e.preventDefault();

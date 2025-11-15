@@ -93,13 +93,47 @@ export class ImageGridComponent {
 			// 图片
 			const imgEl = thumbnailEl.createEl("img");
 			imgEl.addClass("image-manager-thumbnail-image");
-			imgEl.src = getImagePath(image);
+			const imagePath = getImagePath(image);
+			imgEl.src = imagePath;
 			imgEl.alt = image.name;
 
 			// SVG图片特殊处理 - 只有当显示的封面是 SVG 时才应用
 			if (image.displayFile.extension.toLowerCase() === "svg") {
 				imgEl.addClass("image-manager-svg-image");
 			}
+
+			// 添加加载错误处理，防止循环加载
+			let loadFailed = false;
+			imgEl.onerror = () => {
+				if (loadFailed) return; // 防止重复处理
+				loadFailed = true;
+				console.warn(`图片加载失败: ${image.path}`);
+				// 清空 src 防止持续尝试加载
+				imgEl.src = "";
+				imgEl.style.display = "none";
+				// 显示错误占位符
+				const errorDiv = thumbnailEl.createDiv("image-manager-cover-missing");
+				const contentWrapper = errorDiv.createDiv("image-manager-cover-missing-content");
+				const iconDiv = contentWrapper.createEl("span", { cls: "image-manager-cover-missing-icon" });
+				setIcon(iconDiv, "alert-circle");
+				contentWrapper.createEl("span", {
+					text: "加载失败",
+					cls: "image-manager-cover-missing-text",
+				});
+			};
+
+			// 添加加载超时处理（10秒）
+			const loadTimeout = setTimeout(() => {
+				if (!imgEl.complete && !loadFailed) {
+					console.warn(`图片加载超时: ${image.path}`);
+					imgEl.onerror?.(new Event("error"));
+				}
+			}, 10000);
+
+			// 加载成功时清除超时
+			imgEl.onload = () => {
+				clearTimeout(loadTimeout);
+			};
 		}
 
 		// 格式标签

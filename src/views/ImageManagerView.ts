@@ -422,14 +422,37 @@ export class ImageManagerView extends ItemView {
 				img.src = resourcePath;
 				img.alt = image.name;
 				
-				// 添加加载错误处理
+				// 添加加载错误处理，防止循环加载
+				let loadFailed = false;
 				img.onerror = () => {
-					console.error("Failed to load image:", image.path);
-					img.src = ""; // 清空src避免持续报错
-					thumbnailEl.createDiv({
+					if (loadFailed) return; // 防止重复处理
+					loadFailed = true;
+					console.warn(`图片加载失败: ${image.path}`);
+					// 清空 src 防止持续尝试加载
+					img.src = "";
+					img.style.display = "none";
+					// 显示错误占位符
+					const errorDiv = thumbnailEl.createDiv("image-manager-cover-missing");
+					const contentWrapper = errorDiv.createDiv("image-manager-cover-missing-content");
+					const iconDiv = contentWrapper.createEl("span", { cls: "image-manager-cover-missing-icon" });
+					setIcon(iconDiv, "alert-circle");
+					contentWrapper.createEl("span", {
 						text: "加载失败",
-						cls: "image-load-error",
+						cls: "image-manager-cover-missing-text",
 					});
+				};
+
+				// 添加加载超时处理（10秒）
+				const loadTimeout = setTimeout(() => {
+					if (!img.complete && !loadFailed) {
+						console.warn(`图片加载超时: ${image.path}`);
+						img.onerror?.(new Event("error"));
+					}
+				}, 10000);
+
+				// 加载成功时清除超时
+				img.onload = () => {
+					clearTimeout(loadTimeout);
 				};
 			}
 
