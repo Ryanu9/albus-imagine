@@ -332,11 +332,8 @@ export class ImageManagerModal extends Modal {
 		if (this.settings.confirmDelete === false) {
 			try {
 				await this.fileOperations.deleteFile(image);
-				// 清除缓存
-				this.referenceChecker.getCache().delete(image.path);
-				this.imageLoadCache.delete(image.path);
-				// 重新加载
-				await this.loadImages();
+				// 优化：只从内存中移除，而不是重新加载所有图片
+				this.removeImageFromList(image);
 			} catch (error) {
 				// 错误已在 service 中处理
 			}
@@ -351,15 +348,34 @@ export class ImageManagerModal extends Modal {
 			extraMessage,
 			async () => {
 				await this.fileOperations.deleteFile(image);
-				// 清除缓存
-				this.referenceChecker.getCache().delete(image.path);
-				this.imageLoadCache.delete(image.path);
-			// 重新加载
-			await this.loadImages();
-		}
-	);
-	modal.open();
-}
+				// 优化：只从内存中移除，而不是重新加载所有图片
+				this.removeImageFromList(image);
+			}
+		);
+		modal.open();
+	}
+
+	/**
+	 * 从列表中移除图片（优化后的删除逻辑）
+	 */
+	private removeImageFromList(image: ImageItem): void {
+		// 从 images 数组中移除
+		this.images = this.images.filter(img => img.path !== image.path);
+		// 从 filteredImages 数组中移除
+		this.filteredImages = this.filteredImages.filter(img => img.path !== image.path);
+		// 清除缓存
+		this.referenceChecker.getCache().delete(image.path);
+		this.imageLoadCache.delete(image.path);
+		// 重新渲染（使用组件方式）
+		this.imageGrid.render(this.filteredImages, (img) =>
+			this.imageLoader.getImageResourcePath(img.displayFile)
+		);
+		// 更新头部统计
+		this.headerComponent.updateStats(
+			this.images.length,
+			this.filteredImages.length
+		);
+	}
 
 /**
  * 批量删除未引用图片

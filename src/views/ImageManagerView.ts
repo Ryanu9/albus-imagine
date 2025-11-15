@@ -737,7 +737,8 @@ export class ImageManagerView extends ItemView {
 		if (this.settings.confirmDelete === false) {
 			try {
 				await this.fileOperations.deleteFile(image);
-				await this.refresh();
+				// 优化：只从内存中移除，而不是重新加载所有图片
+				this.removeImageFromList(image);
 			} catch (error) {
 				// 错误已在 service 中处理
 			}
@@ -752,10 +753,27 @@ export class ImageManagerView extends ItemView {
 			extraMessage,
 			async () => {
 				await this.fileOperations.deleteFile(image);
-				await this.refresh();
+				// 优化：只从内存中移除，而不是重新加载所有图片
+				this.removeImageFromList(image);
 			}
 		);
 		modal.open();
+	}
+
+	/**
+	 * 从列表中移除图片（优化后的删除逻辑）
+	 */
+	private removeImageFromList(image: ImageItem): void {
+		// 从 images 数组中移除
+		this.images = this.images.filter(img => img.path !== image.path);
+		// 从 filteredImages 数组中移除
+		this.filteredImages = this.filteredImages.filter(img => img.path !== image.path);
+		// 清除引用缓存
+		this.referenceChecker.clearCache();
+		// 重新渲染网格（只渲染，不重新加载）
+		this.renderGrid();
+		// 更新头部统计信息
+		this.renderHeader();
 	}
 
 	/**
