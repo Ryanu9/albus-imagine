@@ -3,14 +3,21 @@ import { PluginSettingTab } from "./settings/PluginSettingTab";
 import SettingsStore from "./settings/SettingsStore";
 import { IPluginSettings } from "./types/types";
 import { ImageManagerView, IMAGE_MANAGER_VIEW_TYPE } from "./views/ImageManagerView";
+import { ResizeHandler } from "./handlers";
 import "./styles";
 
 export default class AlbusFigureManagerPlugin extends Plugin {
 	settings: IPluginSettings;
 	readonly settingsStore = new SettingsStore(this);
+	private resizeHandler: ResizeHandler | null = null;
 
 	async onload() {
 		await this.settingsStore.loadSettings();
+
+		// 初始化图片调整大小处理器
+		if (this.settings.imageResize?.dragResize) {
+			this.initializeResizeHandler();
+		}
 
 		// 注册视图
 		this.registerView(
@@ -39,6 +46,27 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 
 		// 添加设置选项卡
 		this.addSettingTab(new PluginSettingTab(this));
+	}
+
+	/**
+	 * 初始化图片调整大小处理器
+	 */
+	private initializeResizeHandler(): void {
+		if (!this.settings.imageResize) return;
+
+		this.resizeHandler = new ResizeHandler(this, this.settings.imageResize);
+		
+		// 注册主文档事件
+		this.resizeHandler.registerDocument(document);
+
+		// 监听新窗口打开事件
+		this.registerEvent(
+			this.app.workspace.on('window-open', (workspaceWindow, window) => {
+				if (this.resizeHandler) {
+					this.resizeHandler.registerDocument(window.document);
+				}
+			})
+		);
 	}
 
 	/**
@@ -71,10 +99,22 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	onunload() {
 		// 清理工作
 		this.app.workspace.detachLeavesOfType(IMAGE_MANAGER_VIEW_TYPE);
+		this.resizeHandler = null;
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		
+		// 更新调整大小处理器设置
+		if (this.settings.imageResize) {
+			if (this.settings.imageResize.dragResize && !this.resizeHandler) {
+				// 如果启用了拖拽调整但处理器未初始化，则初始化
+				this.initializeResizeHandler();
+			} else if (this.resizeHandler) {
+				// 更新现有处理器的设置
+				this.resizeHandler.updateSettings(this.settings.imageResize);
+			}
+		}
 		
 		// 通知所有打开的图片管理器视图更新设置
 		const leaves = this.app.workspace.getLeavesOfType(IMAGE_MANAGER_VIEW_TYPE);

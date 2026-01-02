@@ -1,5 +1,6 @@
 import { FC, ReactNode } from "react";
 import { ImageManagerSettings } from "./ImageManagerSettings";
+import { ImageResizeSettings } from "./ImageResizeSettings";
 
 // 设置组件辅助组件
 export const SettingTitle: FC<{ children: ReactNode }> = ({ children }) => (
@@ -126,10 +127,11 @@ export const SettingSwitch: FC<{
 export const Settings: FC = () => {
 	return (
 		<div style={{
-			padding: "1rem",
 			maxWidth: "800px",
 		}}>
 			<ImageManagerSettings />
+			<SettingDivider />
+			<ImageResizeSettings />
 		</div>
 	);
 };
