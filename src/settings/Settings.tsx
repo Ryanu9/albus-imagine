@@ -1,6 +1,7 @@
 import { FC, ReactNode } from "react";
 import { ImageManagerSettings } from "./ImageManagerSettings";
 import { ImageResizeSettings } from "./ImageResizeSettings";
+import { ImageViewerSettings } from "./ImageViewerSettings";
 
 // 设置组件辅助组件
 export const SettingTitle: FC<{ children: ReactNode }> = ({ children }) => (
@@ -132,6 +133,8 @@ export const Settings: FC = () => {
 			<ImageManagerSettings />
 			<SettingDivider />
 			<ImageResizeSettings />
+			<SettingDivider />
+			<ImageViewerSettings />
 		</div>
 	);
 };

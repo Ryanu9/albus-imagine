@@ -1,9 +1,9 @@
 {
-	"id": "albus-figure-manager",
-	"name": "Figure Manager",
-	"version": "1.0.3",
+	"id": "albus-images-aio",
+	"name": "Images AIO",
+	"version": "1.2.0",
 	"minAppVersion": "1.8.0",
-	"description": "A powerful image management plugin for Obsidian with reference checking, searching, and file operations.",
+	"description": "A powerful image management plugin for Obsidian with managing, resizing and viewing features.",
 	"author": "Albus",
 	"authorUrl": "https://github.com/AlbusGuo",
 	"isDesktopOnly": true

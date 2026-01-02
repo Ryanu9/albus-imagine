@@ -4,12 +4,14 @@ import SettingsStore from "./settings/SettingsStore";
 import { IPluginSettings } from "./types/types";
 import { ImageManagerView, IMAGE_MANAGER_VIEW_TYPE } from "./views/ImageManagerView";
 import { ResizeHandler } from "./handlers";
+import { ImageViewerManager } from "./views/ImageViewerManager";
 import "./styles";
 
 export default class AlbusFigureManagerPlugin extends Plugin {
 	settings: IPluginSettings;
 	readonly settingsStore = new SettingsStore(this);
 	private resizeHandler: ResizeHandler | null = null;
+	private imageViewerManager: ImageViewerManager | null = null;
 
 	async onload() {
 		await this.settingsStore.loadSettings();
@@ -17,6 +19,11 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		// 初始化图片调整大小处理器
 		if (this.settings.imageResize?.dragResize) {
 			this.initializeResizeHandler();
+		}
+
+		// 初始化图片查看器
+		if (this.settings.imageViewer) {
+			this.initializeImageViewer();
 		}
 
 		// 注册视图
@@ -46,6 +53,15 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 
 		// 添加设置选项卡
 		this.addSettingTab(new PluginSettingTab(this));
+
+		// 监听新窗口打开事件（用于图片查看器）
+		this.registerEvent(
+			this.app.workspace.on('window-open', (workspaceWindow, window) => {
+				if (this.imageViewerManager) {
+					this.imageViewerManager.refreshViewTrigger(window.document);
+				}
+			})
+		);
 	}
 
 	/**
@@ -67,6 +83,16 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 				}
 			})
 		);
+	}
+
+	/**
+	 * 初始化图片查看器
+	 */
+	private initializeImageViewer(): void {
+		if (!this.settings.imageViewer) return;
+
+		this.imageViewerManager = new ImageViewerManager(this.app, this.settings.imageViewer);
+		this.imageViewerManager.initialize();
 	}
 
 	/**
@@ -100,6 +126,11 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		// 清理工作
 		this.app.workspace.detachLeavesOfType(IMAGE_MANAGER_VIEW_TYPE);
 		this.resizeHandler = null;
+		
+		if (this.imageViewerManager) {
+			this.imageViewerManager.cleanup();
+			this.imageViewerManager = null;
+		}
 	}
 
 	async saveSettings() {
@@ -113,6 +144,16 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 			} else if (this.resizeHandler) {
 				// 更新现有处理器的设置
 				this.resizeHandler.updateSettings(this.settings.imageResize);
+			}
+		}
+
+		// 更新图片查看器设置
+		if (this.settings.imageViewer) {
+			if (!this.imageViewerManager) {
+				this.initializeImageViewer();
+			} else {
+				this.imageViewerManager.updateSettings(this.settings.imageViewer);
+				this.imageViewerManager.refreshViewTrigger();
 			}
 		}
 		
