@@ -4,7 +4,6 @@
 
 [![版本](https://img.shields.io/github/v/release/AlbusGuo/albus-imagine)](https://github.com/AlbusGuo/albus-imagine/releases)
 [![下载](https://img.shields.io/github/downloads/AlbusGuo/albus-imagine/total)](https://github.com/AlbusGuo/albus-imagine/releases)
-[![许可证](https://img.shields.io/github/license/AlbusGuo/albus-imagine)](LICENSE)
 
 > 本项目部分功能参考插件 [Image Toolkit](https://github.com/sissilab/obsidian-image-toolkit) 与 [AttachFlow](https://github.com/Yaozhuwa/AttachFlow)，感谢社区插件的开源分享！
 
