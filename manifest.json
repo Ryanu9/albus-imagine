@@ -3,7 +3,7 @@
 	"name": "Imagine",
 	"version": "1.3.0",
 	"minAppVersion": "1.11.4",
-	"description": "A powerful image management plugin for Obsidian with managing, resizing and viewing features.",
+	"description": "A comprehensive image management plugin for managing, inserting, resizing, viewing, and batch processing images.",
 	"author": "Albus",
 	"authorUrl": "https://github.com/AlbusGuo",
 	"isDesktopOnly": true
