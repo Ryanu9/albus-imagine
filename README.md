@@ -87,6 +87,14 @@
 3. 搜索 "Imagine"
 4. 点击安装并启用
 
+#### 使用 BRAT 插件安装
+1. 安装 [BRAT 插件](https://github.com/TfTHacker/obsidian42-brat)
+2. 打开 BRAT 插件设置
+3. 点击 "Add a plugin repository"
+4. 输入插件仓库地址：`https://github.com/AlbusGuo/albus-imagine`
+5. 点击 "Add Plugin" 并等待安装完成
+6. 在社区插件列表中启用 "Imagine"
+
 #### 手动安装
 1. 下载 [最新版本](https://github.com/AlbusGuo/albus-imagine/releases)
 2. 解压到 `.obsidian/plugins/albus-imagine/` 文件夹

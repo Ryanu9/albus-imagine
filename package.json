@@ -22,7 +22,7 @@
 		"Obsidian Plugin"
 	],
 	"author": "Albus",
-	"license": "MIT",
+	"license": "AGPL-3.0",
 	"engines": {
 		"node": ">=18.x"
 	},
