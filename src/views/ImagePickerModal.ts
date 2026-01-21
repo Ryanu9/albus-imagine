@@ -308,7 +308,7 @@ export class ImagePickerModal extends Modal {
 			
 			// 点击选择图片
 			thumbnailEl.onclick = () => this.handleImageSelect(image);
-			thumbnailEl.style.cursor = "pointer";
+			thumbnailEl.addClass("cursor-pointer");
 
 			if (!image.coverMissing) {
 				const img = thumbnailEl.createEl("img", {

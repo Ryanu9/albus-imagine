@@ -1,4 +1,8 @@
-﻿/**
+﻿/* 通用指针样式类 */
+.cursor-pointer {
+	cursor: pointer;
+}
+/**
  * 图片管理器样式 - Obsidian 原生风格重构版
  * 设计原则：简洁、原生、功能清晰
  */
