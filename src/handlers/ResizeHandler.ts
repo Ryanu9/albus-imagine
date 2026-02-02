@@ -42,9 +42,9 @@ export class ResizeHandler {
 	registerDocument(document: Document): void {
 		// 鼠标按下事件
 		const mouseDownHandler = (event: MouseEvent) => {
-			const target = event.target as HTMLElement;
-			if (target.tagName === 'IMG') {
-				this.handleMouseDown(event);
+			const img = this.getImageFromEvent(event);
+			if (img) {
+				this.handleMouseDown(event, img);
 			}
 		};
 		document.addEventListener('mousedown', mouseDownHandler);
@@ -52,9 +52,9 @@ export class ResizeHandler {
 
 		// 鼠标移动事件
 		const mouseMoveHandler = (event: MouseEvent) => {
-			const target = event.target as HTMLElement;
-			if (target.tagName === 'IMG') {
-				this.handleMouseMove(event);
+			const img = this.getImageFromEvent(event);
+			if (img) {
+				this.handleMouseMove(event, img);
 			}
 		};
 		document.addEventListener('mousemove', mouseMoveHandler);
@@ -62,9 +62,9 @@ export class ResizeHandler {
 
 		// 鼠标离开事件
 		const mouseLeaveHandler = (event: MouseEvent) => {
-			const target = event.target as HTMLElement;
-			if (target.tagName === 'IMG') {
-				this.handleMouseLeave(event);
+			const img = this.getImageFromEvent(event);
+			if (img) {
+				this.handleMouseLeave(event, img);
 			}
 		};
 		document.addEventListener('mouseleave', mouseLeaveHandler);
@@ -72,9 +72,37 @@ export class ResizeHandler {
 	}
 
 	/**
+	 * 从事件中获取图片元素
+	 * 处理直接图片和 .image-embed 容器内的图片（包括带标题的图片）
+	 */
+	private getImageFromEvent(event: MouseEvent): HTMLImageElement | null {
+		const target = event.target as HTMLElement;
+		
+		// 直接是图片元素
+		if (target.tagName === 'IMG') {
+			return target as HTMLImageElement;
+		}
+		
+		// 可能是 .image-embed 容器（带标题的图片）
+		if (target.classList && (target.classList.contains('image-embed') || target.classList.contains('internal-embed'))) {
+			const img = target.querySelector('img');
+			if (img) {
+				return img;
+			}
+		}
+		
+		return null;
+	}
+
+	/**
 	 * 处理鼠标按下事件
 	 */
-	private handleMouseDown(event: MouseEvent): void {
+	private handleMouseDown(event: MouseEvent, img: HTMLImageElement): void {
+		// 只响应鼠标左键
+		if (event.button !== 0) {
+			return;
+		}
+
 		const currentMd = this.plugin.app.workspace.getActiveFile();
 		if (!currentMd || currentMd.name.endsWith('.canvas')) {
 			return;
@@ -85,11 +113,8 @@ export class ResizeHandler {
 			return;
 		}
 
-		if (event.button === 0) {
-			event.preventDefault();
-		}
+		event.preventDefault();
 
-		const img = event.target as HTMLImageElement;
 		const editor = activeView.editor;
 		if (!editor) {
 			return;
@@ -111,7 +136,7 @@ export class ResizeHandler {
 	/**
 	 * 处理鼠标移动事件
 	 */
-	private handleMouseMove(event: MouseEvent): void {
+	private handleMouseMove(event: MouseEvent, img: HTMLImageElement): void {
 		const currentMd = this.plugin.app.workspace.getActiveFile();
 		if (!currentMd || currentMd.name.endsWith('.canvas')) {
 			return;
@@ -122,7 +147,6 @@ export class ResizeHandler {
 			return;
 		}
 
-		const img = event.target as HTMLImageElement;
 		const rect = img.getBoundingClientRect();
 		const x = event.clientX - rect.left;
 		const y = event.clientY - rect.top;
@@ -143,8 +167,7 @@ export class ResizeHandler {
 	/**
 	 * 处理鼠标离开事件
 	 */
-	private handleMouseLeave(event: MouseEvent): void {
-		const img = event.target as HTMLImageElement;
+	private handleMouseLeave(event: MouseEvent, img: HTMLImageElement): void {
 		img.removeClass('image-cursor-nwse-resize');
 		img.addClass('image-cursor-default');
 	}

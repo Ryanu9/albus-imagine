@@ -7,14 +7,15 @@ import { ImageItem } from "../types/image-manager.types";
 
 export class BatchDeleteConfirmModal extends Modal {
 	private images: ImageItem[];
-	private onConfirm: () => Promise<void>;
+	private onConfirm: (onProgress: (current: number, total: number) => void) => Promise<void>;
 	private bodyEl: HTMLElement | null = null;
 	private actionsEl: HTMLElement | null = null;
+	private progressEl: HTMLElement | null = null;
 
 	constructor(
 		app: App,
 		images: ImageItem[],
-		onConfirm: () => Promise<void>
+		onConfirm: (onProgress: (current: number, total: number) => void) => Promise<void>
 	) {
 		super(app);
 		this.images = images;
@@ -93,11 +94,26 @@ export class BatchDeleteConfirmModal extends Modal {
 		try {
 			// 显示加载状态
 			this.showLoadingState();
-			await this.onConfirm();
+			
+			// 传入进度回调
+			await this.onConfirm((current: number, total: number) => {
+				this.updateProgress(current, total);
+			});
+			
 			this.close();
 		} catch {
 			// 错误已在调用方处理，恢复界面以便用户看到错误提示
 			this.hideLoadingState();
+		}
+	}
+
+	/**
+	 * 更新进度
+	 */
+	private updateProgress(current: number, total: number): void {
+		if (this.progressEl) {
+			const percentage = Math.round((current / total) * 100);
+			this.progressEl.setText(`正在删除... ${current}/${total} (${percentage}%)`);
 		}
 	}
 
@@ -114,7 +130,7 @@ export class BatchDeleteConfirmModal extends Modal {
 		// 添加加载动画
 		const loadingContainer = this.bodyEl.createDiv("delete-confirm-loading");
 		loadingContainer.createDiv("delete-confirm-loading-spinner");
-		loadingContainer.createDiv({
+		this.progressEl = loadingContainer.createDiv({
 			text: "正在删除图片...",
 			cls: "delete-confirm-loading-text"
 		});

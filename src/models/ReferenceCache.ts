@@ -48,4 +48,15 @@ export class ReferenceCache {
 	get size(): number {
 		return this.cache.size;
 	}
+
+	/**
+	 * 更新缓存键（用于文件重命名）
+	 */
+	updateKey(oldKey: string, newKey: string): void {
+		const value = this.cache.get(oldKey);
+		if (value) {
+			this.cache.delete(oldKey);
+			this.cache.set(newKey, value);
+		}
+	}
 }

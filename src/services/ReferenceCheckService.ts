@@ -15,44 +15,67 @@ export class ReferenceCheckService {
 
 	/**
 	 * 检查图片引用
+	 * @param images 要检查的图片列表
+	 * @param onProgress 进度回调 (current, total)
 	 */
-	async checkReferences(images: ImageItem[]): Promise<ImageItem[]> {
+	async checkReferences(
+		images: ImageItem[],
+		onProgress?: (current: number, total: number) => void
+	): Promise<ImageItem[]> {
 		if (images.length === 0) return images;
 
 		try {
 			const updatedImages = [...images];
+			const batchSize = 20; // 每批处理20张图片
+			let processedCount = 0;
 
-			// 批量处理所有图片的引用检查
-			for (let i = 0; i < updatedImages.length; i++) {
-				const imageItem = updatedImages[i];
-				const cacheKey = imageItem.path;
+			// 分批处理所有图片的引用检查
+			for (let i = 0; i < updatedImages.length; i += batchSize) {
+				const batch = updatedImages.slice(i, Math.min(i + batchSize, updatedImages.length));
+				
+				// 处理当前批次
+				for (let j = 0; j < batch.length; j++) {
+					const imageItem = batch[j];
+					const actualIndex = i + j;
+					const cacheKey = imageItem.path;
 
-				// 检查缓存
-				if (this.referenceCache.has(cacheKey)) {
-					const cachedResult = this.referenceCache.get(cacheKey)!;
-					updatedImages[i] = {
-						...imageItem,
-						references: cachedResult.references,
-						referenceCount: cachedResult.referenceCount,
+					// 检查缓存
+					if (this.referenceCache.has(cacheKey)) {
+						const cachedResult = this.referenceCache.get(cacheKey)!;
+						updatedImages[actualIndex] = {
+							...imageItem,
+							references: cachedResult.references,
+							referenceCount: cachedResult.referenceCount,
+						};
+						continue;
+					}
+
+					// 使用新的反向链接API查找引用
+					const references = this.findReferencesUsingBacklinks(imageItem);
+
+					const result = {
+						references: references,
+						referenceCount: references.length,
 					};
-					continue;
+
+					// 缓存结果
+					this.referenceCache.set(cacheKey, result);
+
+					updatedImages[actualIndex] = {
+						...imageItem,
+						...result,
+					};
 				}
-
-				// 使用新的反向链接API查找引用
-				const references = this.findReferencesUsingBacklinks(imageItem);
-
-				const result = {
-					references: references,
-					referenceCount: references.length,
-				};
-
-				// 缓存结果
-				this.referenceCache.set(cacheKey, result);
-
-				updatedImages[i] = {
-					...imageItem,
-					...result,
-				};
+				
+				processedCount += batch.length;
+				
+				// 调用进度回调
+				if (onProgress) {
+					onProgress(processedCount, updatedImages.length);
+				}
+				
+				// 给 UI 线程一些时间更新，避免阻塞
+				await new Promise(resolve => setTimeout(resolve, 0));
 			}
 
 			return updatedImages;

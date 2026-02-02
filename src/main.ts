@@ -6,6 +6,7 @@ import { ImageManagerView, IMAGE_MANAGER_VIEW_TYPE } from "./views/ImageManagerV
 import { ImagePickerModal } from "./views/ImagePickerModal";
 import { ResizeHandler } from "./handlers";
 import { ImageViewerManager } from "./views/ImageViewerManager";
+import { ImageContextMenu } from "./services/ImageContextMenu";
 import "./styles";
 
 export default class AlbusFigureManagerPlugin extends Plugin {
@@ -13,6 +14,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	readonly settingsStore = new SettingsStore(this);
 	private resizeHandler: ResizeHandler | null = null;
 	private imageViewerManager: ImageViewerManager | null = null;
+	private imageContextMenu: ImageContextMenu | null = null;
 
 	async onload() {
 		await this.settingsStore.loadSettings();
@@ -29,6 +31,9 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		if (this.settings.imageViewer?.enabled) {
 			this.initializeImageViewer();
 		}
+
+		// 初始化图片上下文菜单
+		this.initializeContextMenu();
 
 		// 注册视图
 		this.registerView(
@@ -109,6 +114,21 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 	}
 
 	/**
+	 * 初始化图片上下文菜单
+	 */
+	private initializeContextMenu(): void {
+		if (!this.settings.imageManager) return;
+
+		this.imageContextMenu = new ImageContextMenu(
+			this.app,
+			this,
+			this.settings.imageManager
+		);
+		this.addChild(this.imageContextMenu);
+		this.imageContextMenu.registerContextMenuListener();
+	}
+
+	/**
 	 * 打开图片管理器
 	 */
 	async openImageManager(): Promise<void> {
@@ -150,6 +170,10 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		if (this.imageViewerManager) {
 			this.imageViewerManager.cleanup();
 			this.imageViewerManager = null;
+		}
+
+		if (this.imageContextMenu) {
+			this.imageContextMenu = null;
 		}
 	}
 

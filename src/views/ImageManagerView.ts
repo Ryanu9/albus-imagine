@@ -33,6 +33,10 @@ export class ImageManagerView extends ItemView {
 	private isCheckingReferences = false;
 	private folderSuggest: FolderSuggest | null = null;
 
+	// 多选模式
+	private isMultiSelectMode = false;
+	private selectedImages: Set<string> = new Set(); // 存储选中图片的路径
+
 	// 虚拟滚动相关
 	private renderedCount = 0;
 	private batchSize = 50; // 每批次渲染的图片数量
@@ -196,44 +200,40 @@ export class ImageManagerView extends ItemView {
 		// 右侧：操作按钮
 		const rightSection = headerRow.createDiv("image-manager-header-right");
 
-		// 引用检查状态提示
-		if (this.isCheckingReferences) {
-			rightSection.createEl("span", {
-				text: "正在检查引用...",
-				cls: "image-manager-checking-status",
-			});
-		}
-
-		// 批量删除按钮（仅在筛选未引用时显示）
-		if (this.showUnreferencedOnly && this.filteredImages.length > 0) {
-			const batchDeleteBtn = rightSection.createEl("button", {
-				text: "批量删除",
+		// 多选模式下的批量删除按钮（只有选中图片时才显示）
+		if (this.isMultiSelectMode && this.selectedImages.size > 0) {
+			const batchDeleteSelectedBtn = rightSection.createEl("button", {
+				text: `批量删除 (${this.selectedImages.size})`,
 				cls: "image-manager-check-refs-button batch-delete",
 			});
-			batchDeleteBtn.onclick = () => this.handleBatchDelete();
+			batchDeleteSelectedBtn.onclick = () => this.handleBatchDeleteSelected();
 		}
 
-		// 筛选按钮
-		const filterBtn = rightSection.createEl("button", {
-			text: "仅未引用",
-			cls: this.showUnreferencedOnly
-				? "image-manager-filter-button image-manager-filter-button-active"
-				: "image-manager-filter-button",
+		// 筛选未引用时的删除全部未引用按钮
+		if (this.showUnreferencedOnly && this.filteredImages.length > 0) {
+			const deleteAllUnreferencedBtn = rightSection.createEl("button", {
+				text: "删除全部未引用",
+				cls: "image-manager-check-refs-button batch-delete",
+			});
+			deleteAllUnreferencedBtn.onclick = () => this.handleBatchDelete();
+		}
+
+		// 多选按钮
+		const multiSelectBtn = rightSection.createEl("button", {
+			text: this.isMultiSelectMode ? "取消多选" : "多选",
+			cls: this.isMultiSelectMode 
+				? "image-manager-check-refs-button multi-select-active"
+				: "image-manager-check-refs-button",
 		});
-		filterBtn.onclick = async () => {
-			// 检查是否所有图片都已经检查过引用
-			const uncheckedImages = this.images.filter(img => img.references === undefined);
-			
-			if (uncheckedImages.length > 0) {
-				// 有未检查的图片，需要检查所有图片的引用
-				await this.checkReferences();
+		multiSelectBtn.onclick = () => {
+			this.isMultiSelectMode = !this.isMultiSelectMode;
+			if (!this.isMultiSelectMode) {
+				// 退出多选模式时清空选中
+				this.selectedImages.clear();
 			}
-			
-			this.showUnreferencedOnly = !this.showUnreferencedOnly;
-			this.applyFilters();
 			this.renderHeader();
 			this.renderGrid();
-		}
+		};
 
 		// 刷新按钮
 		const refreshBtn = rightSection.createEl("button", {
@@ -328,8 +328,32 @@ export class ImageManagerView extends ItemView {
 		// 排序和过滤控制区域
 		const sortControlsEl = this.searchContainer.createDiv("image-manager-sort-controls");
 
-		// 排序依据
-		sortControlsEl.createSpan({ text: "排序依据:", cls: "image-manager-sort-label" });
+		// 筛选（移到排序前面）
+		sortControlsEl.createSpan({ text: "筛选:", cls: "image-manager-sort-label" });
+		const filterBtn = sortControlsEl.createEl("button", {
+			text: this.showUnreferencedOnly ? "未引用" : "全部",
+			cls: this.showUnreferencedOnly
+				? "image-manager-filter-button image-manager-filter-button-active"
+				: "image-manager-filter-button",
+		});
+		filterBtn.onclick = async () => {
+			// 检查是否所有图片都已经检查过引用
+			const uncheckedImages = this.images.filter(img => img.references === undefined);
+			
+			if (!this.showUnreferencedOnly && uncheckedImages.length > 0) {
+				// 有未检查的图片，需要检查所有图片的引用
+				await this.checkReferences();
+			}
+			
+			this.showUnreferencedOnly = !this.showUnreferencedOnly;
+			this.applyFilters();
+			this.renderSearchBar(); // 更新筛选按钮文字
+			this.renderHeader();
+			this.renderGrid();
+		};
+
+		// 排序
+		sortControlsEl.createSpan({ text: "排序:", cls: "image-manager-sort-label" });
 		const sortFieldSelect = sortControlsEl.createEl("select", {
 			cls: "image-manager-sort-select",
 		});
@@ -445,13 +469,32 @@ export class ImageManagerView extends ItemView {
 		
 		images.forEach((image) => {
 			const itemEl = gridEl.createDiv("image-manager-grid-item");
+			
+			// 多选模式下添加选中样式
+			if (this.isMultiSelectMode && this.selectedImages.has(image.path)) {
+				itemEl.addClass("image-manager-item-selected");
+			}
 
 			// 缩略图容器
 			const thumbnailEl = itemEl.createDiv("image-manager-thumbnail");
 			
-			// 单击图片打开预览
+			// 单击图片：多选模式下切换选中状态，否则打开预览
 			thumbnailEl.onclick = () => {
-				this.handlePreview(image);
+				if (this.isMultiSelectMode) {
+					// 多选模式：切换选中状态
+					if (this.selectedImages.has(image.path)) {
+						this.selectedImages.delete(image.path);
+						itemEl.removeClass("image-manager-item-selected");
+					} else {
+						this.selectedImages.add(image.path);
+						itemEl.addClass("image-manager-item-selected");
+					}
+					// 更新头部按钮状态
+					this.renderHeader();
+				} else {
+					// 普通模式：打开预览
+					this.handlePreview(image);
+				}
 			};
 			thumbnailEl.addClass("cursor-pointer");
 			
@@ -695,20 +738,30 @@ export class ImageManagerView extends ItemView {
 		if (this.isCheckingReferences || this.images.length === 0) return;
 
 		this.isCheckingReferences = true;
-		this.renderHeader();
+
+		// 创建进度通知
+		const progressNotice = new Notice(`正在检查引用... 0/${this.images.length}`, 0);
 
 		try {
-			// 重要：接收返回的更新后的图片数组
-			this.images = await this.referenceChecker.checkReferences(this.images);
+			// 重要：接收返回的更新后的图片数组，并传入进度回调
+			this.images = await this.referenceChecker.checkReferences(
+				this.images,
+				(current: number, total: number) => {
+					const percentage = Math.round((current / total) * 100);
+					progressNotice.setMessage(`正在检查引用... ${current}/${total} (${percentage}%)`);
+				}
+			);
+			
+			progressNotice.hide();
 			this.applyFilters(); // 重新应用过滤
 			this.renderGrid();
 			new Notice(`引用检查完成：已检查 ${this.images.length} 张图片`);
 		} catch (error) {
+			progressNotice.hide();
 			new Notice(`检查引用失败: ${error.message}`);
 			console.error("Error checking references:", error);
 		} finally {
 			this.isCheckingReferences = false;
-			this.renderHeader();
 		}
 	}
 
@@ -848,8 +901,17 @@ export class ImageManagerView extends ItemView {
 	private handleRename(image: ImageItem): void {
 		new RenameModal(this.app, image, async (newName) => {
 			try {
+				const oldPath = image.path;
+				const newPath = image.path.replace(/[^/]+$/, newName);
+				
 				await this.fileOperations.renameFile(image, newName);
-				await this.refresh();
+				
+				// 更新内存中的图片数据，而不是完全刷新
+				this.updateImageAfterRename(oldPath, newPath, newName);
+				
+				// 重新渲染（不重新加载）
+				this.renderHeader();
+				this.renderGrid();
 			} catch {
 				// 错误已在 service 中处理
 			}
@@ -888,6 +950,34 @@ export class ImageManagerView extends ItemView {
 	}
 
 	/**
+	 * 更新重命名后的图片数据
+	 */
+	private updateImageAfterRename(oldPath: string, newPath: string, newName: string): void {
+		// 更新 images 数组中的图片信息
+		const imageIndex = this.images.findIndex(img => img.path === oldPath);
+		if (imageIndex !== -1) {
+			this.images[imageIndex] = {
+				...this.images[imageIndex],
+				path: newPath,
+				name: newName,
+			};
+		}
+		
+		// 更新 filteredImages 数组
+		const filteredIndex = this.filteredImages.findIndex(img => img.path === oldPath);
+		if (filteredIndex !== -1) {
+			this.filteredImages[filteredIndex] = {
+				...this.filteredImages[filteredIndex],
+				path: newPath,
+				name: newName,
+			};
+		}
+		
+		// 更新引用缓存的键
+		this.referenceChecker.getCache().updateKey(oldPath, newPath);
+	}
+
+	/**
 	 * 从列表中移除图片（优化后的删除逻辑）
 	 */
 	private removeImageFromList(image: ImageItem): void {
@@ -916,35 +1006,49 @@ export class ImageManagerView extends ItemView {
 		const modal = new BatchDeleteConfirmModal(
 			this.app,
 			this.filteredImages,
-			async () => {
-				const total = this.filteredImages.length;
-				const notice = new Notice(`正在删除 ${total} 张图片...`, 0);
-
-				// 使用 Promise.allSettled 并行删除以提高性能
-				const deletePromises = this.filteredImages.map(image => 
-					this.fileOperations.deleteFile(image, true) // 使用静默模式
-						.then(() => ({ status: 'success' as const, image }))
-						.catch((error) => ({ status: 'error' as const, image, error }))
-				);
-
-				const results = await Promise.allSettled(deletePromises);
-				
-				// 统计结果
+			async (onProgress: (current: number, total: number) => void) => {
+				const imagesToDelete = [...this.filteredImages];
+				const total = imagesToDelete.length;
 				let successCount = 0;
 				let errorCount = 0;
+
+				// 使用简单的 for 循环逐个删除，比复杂的 Promise.allSettled 更快
+				// 分批处理以避免 UI 阻塞
+				const batchSize = 10; // 每批处理10个文件
 				
-				for (const result of results) {
-					if (result.status === 'fulfilled' && result.value.status === 'success') {
-						successCount++;
-					} else {
-						errorCount++;
-						if (result.status === 'fulfilled' && result.value.status === 'error') {
-							console.error(`删除文件失败: ${result.value.image.path}`, result.value.error);
+				for (let i = 0; i < imagesToDelete.length; i += batchSize) {
+					const batch = imagesToDelete.slice(i, Math.min(i + batchSize, imagesToDelete.length));
+					
+					// 分批并行删除
+					const batchPromises = batch.map(async (image) => {
+						try {
+							await this.fileOperations.deleteFile(image, true);
+							return { success: true, image };
+						} catch (error) {
+							console.error(`删除文件失败: ${image.path}`, error);
+							return { success: false, image };
+						}
+					});
+					
+					const batchResults = await Promise.all(batchPromises);
+					
+					// 统计结果
+					for (const result of batchResults) {
+						if (result.success) {
+							successCount++;
+							// 立即从内存中移除
+							this.removeImageFromMemory(result.image);
+						} else {
+							errorCount++;
 						}
 					}
+					
+					// 更新进度
+					onProgress(successCount + errorCount, total);
+					
+					// 给 UI 一些时间更新
+					await new Promise(resolve => setTimeout(resolve, 0));
 				}
-
-				notice.hide();
 
 				// 显示结果
 				if (errorCount === 0) {
@@ -952,12 +1056,91 @@ export class ImageManagerView extends ItemView {
 				} else {
 					new Notice(`删除完成: 成功 ${successCount} 张, 失败 ${errorCount} 张`);
 				}
-
-				// 刷新列表
+				
+				// 刷新管理器以确保数据一致性
 				await this.refresh();
 			}
 		);
 		modal.open();
+	}
+
+	/**
+	 * 批量删除选中的图片
+	 */
+	private async handleBatchDeleteSelected(): Promise<void> {
+		if (this.selectedImages.size === 0) {
+			new Notice("没有选中的图片");
+			return;
+		}
+
+		// 获取选中的图片对象
+		const imagesToDelete = this.images.filter(img => this.selectedImages.has(img.path));
+		
+		// 显示批量删除确认模态框
+		const modal = new BatchDeleteConfirmModal(
+			this.app,
+			imagesToDelete,
+			async (onProgress: (current: number, total: number) => void) => {
+				const total = imagesToDelete.length;
+				let successCount = 0;
+				let errorCount = 0;
+
+				// 分批处理以避免 UI 阻塞
+				const batchSize = 10;
+				
+				for (let i = 0; i < imagesToDelete.length; i += batchSize) {
+					const batch = imagesToDelete.slice(i, Math.min(i + batchSize, imagesToDelete.length));
+					
+					const batchPromises = batch.map(async (image) => {
+						try {
+							await this.fileOperations.deleteFile(image, true);
+							return { success: true, image };
+						} catch (error) {
+							console.error(`删除文件失败: ${image.path}`, error);
+							return { success: false, image };
+						}
+					});
+					
+					const batchResults = await Promise.all(batchPromises);
+					
+					for (const result of batchResults) {
+						if (result.success) {
+							successCount++;
+							this.removeImageFromMemory(result.image);
+							this.selectedImages.delete(result.image.path);
+						} else {
+							errorCount++;
+						}
+					}
+					
+					onProgress(successCount + errorCount, total);
+					await new Promise(resolve => setTimeout(resolve, 0));
+				}
+
+				// 显示结果
+				if (errorCount === 0) {
+					new Notice(`成功删除 ${successCount} 张图片`);
+				} else {
+					new Notice(`删除完成: 成功 ${successCount} 张, 失败 ${errorCount} 张`);
+				}
+				
+				// 退出多选模式
+				this.isMultiSelectMode = false;
+				this.selectedImages.clear();
+				
+				// 刷新管理器
+				await this.refresh();
+			}
+		);
+		modal.open();
+	}
+
+	/**
+	 * 从内存中移除图片（不重新加载）
+	 */
+	private removeImageFromMemory(image: ImageItem): void {
+		this.images = this.images.filter(img => img.path !== image.path);
+		this.filteredImages = this.filteredImages.filter(img => img.path !== image.path);
 	}
 
 	/**

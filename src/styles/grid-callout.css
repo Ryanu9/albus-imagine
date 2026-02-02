@@ -1,0 +1,67 @@
+/**
+ * Grid Callout 样式
+ * 用于在 Obsidian 中以网格布局展示图片
+ */
+
+.callout.callout[data-callout*=grid] {
+  box-shadow: none;
+  max-width: unset !important;
+  white-space: nowrap;
+  overflow: hidden;
+  background: transparent;
+  border: none;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  margin: 0;
+  padding: 0;
+}
+
+.callout.callout[data-callout*=grid].is-collapsed .callout-fold {
+  border: none;
+  padding: 5px 10px;
+}
+
+.callout.callout[data-callout*=grid] .callout-title,
+.callout.callout[data-callout*=grid] .callout-title :is(.callout-icon, .callout-title-inner) {
+  display: none;
+}
+
+.callout.callout[data-callout*=grid] .callout-content {
+  overflow-x: auto !important;
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.callout.callout[data-callout*=grid] .callout-content p {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, auto));
+  grid-gap: 2px;
+  align-items: center;
+}
+
+.callout.callout[data-callout*=grid] .callout-content ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, auto));
+  grid-gap: 0 10px;
+  align-items: center;
+}
+
+.callout.callout[data-callout*=grid] .callout-content ul li {
+  white-space: normal;
+  padding-left: 1em;
+  text-indent: -1em;
+}
+
+.callout.callout[data-callout*=grid] .callout-content ul li::before {
+  content: ' ' !important;
+}
+
+.callout.callout[data-callout*=grid] .callout-content img {
+  display: flex;
+  flex: 1;
+  align-self: stretch;
+  object-fit: cover;
+  margin: unset !important;
+}

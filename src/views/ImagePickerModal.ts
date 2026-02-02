@@ -21,9 +21,13 @@ export class ImagePickerModal extends Modal {
 	private folderSuggest: FolderSuggest | null = null;
 
 	// 插图选项
-	private imagePosition: "center" | "left" | "right" = "center";
+	private imagePosition: "center" | "left" | "right" | "inline" = "center";
 	private invertColor = false;
 	private imageCaption = "";
+
+	// 多选模式
+	private isMultiSelectMode = false;
+	private selectedImages: Set<string> = new Set(); // 存储选中图片的名称
 
 	// 虚拟滚动
 	private renderedCount = 0;
@@ -34,6 +38,7 @@ export class ImagePickerModal extends Modal {
 	private imageLoader: ImageLoaderService;
 	private headerContainer: HTMLElement;
 	private searchContainer: HTMLElement;
+	private optionsContainer: HTMLElement;
 	private gridContainer: HTMLElement;
 	private intersectionObserver: IntersectionObserver | null = null;
 
@@ -44,6 +49,8 @@ export class ImagePickerModal extends Modal {
 		this.imageLoader = new ImageLoaderService(app);
 		// 图片选择器不加载自定义文件类型，只加载纯图片
 		// this.imageLoader.setCustomFileTypes(settings.customFileTypes || []);
+		// 根据设置中的SVG反色选项默认启用反色
+		this.invertColor = settings.invertSvgInDarkMode !== false;
 	}
 
 	onOpen(): void {
@@ -89,8 +96,8 @@ export class ImagePickerModal extends Modal {
 		this.renderSearchBar();
 
 		// 插图选项面板
-		const optionsPanel = contentEl.createDiv("image-picker-options");
-		this.renderOptionsPanel(optionsPanel);
+		this.optionsContainer = contentEl.createDiv("image-picker-options");
+		this.renderOptionsPanel();
 
 		const gridPanel = contentEl.createDiv("image-manager-grid-panel");
 		this.gridContainer = gridPanel;
@@ -112,6 +119,41 @@ export class ImagePickerModal extends Modal {
 		folderBtn.onclick = () => this.showFolderInput(folderBtn);
 
 		const statsEl = leftSection.createDiv("image-manager-stats");
+		statsEl.setText(`共 ${this.images.length} 张`);
+
+		// 右侧：多选和确认按钮
+		const rightSection = headerRow.createDiv("image-manager-header-right");
+
+		// 多选模式下的确认按钮
+		if (this.isMultiSelectMode) {
+			const confirmBtn = rightSection.createEl("button", {
+				text: `确认 (${this.selectedImages.size})`,
+				cls: "image-manager-check-refs-button",
+			});
+			// 没有选中图片时禁用
+			if (this.selectedImages.size === 0) {
+				confirmBtn.disabled = true;
+			}
+			confirmBtn.onclick = () => this.handleGridInsert();
+		}
+
+		// 多选按钮
+		const multiSelectBtn = rightSection.createEl("button", {
+			text: this.isMultiSelectMode ? "取消" : "多选",
+			cls: this.isMultiSelectMode 
+				? "image-manager-check-refs-button multi-select-active"
+				: "image-manager-check-refs-button",
+		});
+		multiSelectBtn.onclick = () => {
+			this.isMultiSelectMode = !this.isMultiSelectMode;
+			if (!this.isMultiSelectMode) {
+				// 退出多选模式时清空选中
+				this.selectedImages.clear();
+			}
+			this.renderHeader();
+			this.renderOptionsPanel();
+			this.renderGrid();
+		};
 		statsEl.setText(`共 ${this.images.length} 张`);
 	}
 
@@ -214,18 +256,27 @@ export class ImagePickerModal extends Modal {
 		button.createSpan({ text: this.sortOrder === "desc" ? "↓ 降序" : "↑ 升序" });
 	}
 
-	private renderOptionsPanel(container: HTMLElement): void {
-		container.empty();
+	private renderOptionsPanel(): void {
+		this.optionsContainer.empty();
+
+		// 多选模式下隐藏所有选项
+		if (this.isMultiSelectMode) {
+			this.optionsContainer.style.display = "none";
+			return;
+		}
+		
+		this.optionsContainer.style.display = "flex";
 
 		// 位置选择
-		const positionGroup = container.createDiv("option-group");
+		const positionGroup = this.optionsContainer.createDiv("option-group");
 		positionGroup.createSpan({ text: "位置：", cls: "option-label" });
 		const positionButtons = positionGroup.createDiv("option-buttons");
 		
-		const positions: Array<{ value: "center" | "left" | "right"; label: string }> = [
+		const positions: Array<{ value: "center" | "left" | "right" | "inline"; label: string }> = [
 			{ value: "center", label: "居中" },
 			{ value: "left", label: "左侧环绕" },
 			{ value: "right", label: "右侧环绕" },
+			{ value: "inline", label: "行间" },
 		];
 		
 		positions.forEach((pos) => {
@@ -238,12 +289,12 @@ export class ImagePickerModal extends Modal {
 			}
 			btn.onclick = () => {
 				this.imagePosition = pos.value;
-				this.renderOptionsPanel(container);
+				this.renderOptionsPanel();
 			};
 		});
 
 		// 反色选项
-		const invertGroup = container.createDiv("option-group");
+		const invertGroup = this.optionsContainer.createDiv("option-group");
 		invertGroup.createSpan({ text: "反色：", cls: "option-label" });
 		const toggleContainer = invertGroup.createDiv("option-toggle");
 		new ToggleComponent(toggleContainer)
@@ -253,7 +304,7 @@ export class ImagePickerModal extends Modal {
 			});
 
 		// 标题输入
-		const captionGroup = container.createDiv("option-group");
+		const captionGroup = this.optionsContainer.createDiv("option-group");
 		captionGroup.createSpan({ text: "标题：", cls: "option-label" });
 		const captionInput = captionGroup.createEl("input", {
 			type: "text",
@@ -304,10 +355,32 @@ export class ImagePickerModal extends Modal {
 	private renderImageBatch(gridEl: HTMLElement, images: ImageItem[]): void {
 		images.forEach((image) => {
 			const itemEl = gridEl.createDiv("image-manager-grid-item");
+			
+			// 多选模式下添加选中样式
+			if (this.isMultiSelectMode && this.selectedImages.has(image.name)) {
+				itemEl.addClass("image-manager-item-selected");
+			}
+			
 			const thumbnailEl = itemEl.createDiv("image-manager-thumbnail");
 			
-			// 点击选择图片
-			thumbnailEl.onclick = () => this.handleImageSelect(image);
+			// 点击选择图片：多选模式下切换选中状态，否则插入单张图片
+			thumbnailEl.onclick = () => {
+				if (this.isMultiSelectMode) {
+					// 多选模式：切换选中状态
+					if (this.selectedImages.has(image.name)) {
+						this.selectedImages.delete(image.name);
+						itemEl.removeClass("image-manager-item-selected");
+					} else {
+						this.selectedImages.add(image.name);
+						itemEl.addClass("image-manager-item-selected");
+					}
+					// 更新头部按钮状态
+					this.renderHeader();
+				} else {
+					// 普通模式：插入单张图片
+					this.handleImageSelect(image);
+				}
+			};
 			thumbnailEl.addClass("cursor-pointer");
 
 			if (!image.coverMissing) {
@@ -457,6 +530,32 @@ export class ImagePickerModal extends Modal {
 		}
 
 		editor.replaceSelection(imageLink);
+		this.close();
+	}
+
+	/**
+	 * 处理Grid格式插入
+	 */
+	private handleGridInsert(): void {
+		if (this.selectedImages.size === 0) {
+			new Notice("请至少选择一张图片");
+			return;
+		}
+
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (!view) return;
+
+		const editor = view.editor;
+		if (!editor) return;
+
+		// 构建Grid Callout格式
+		const imageLinks = Array.from(this.selectedImages)
+			.map(name => `![[${name}]]`)
+			.join('\n');
+		
+		const gridContent = `> [!grid]\n> ${imageLinks.split('\n').join('\n> ')}`;
+
+		editor.replaceSelection(gridContent);
 		this.close();
 	}
 
