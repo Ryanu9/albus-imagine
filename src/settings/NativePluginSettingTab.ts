@@ -164,6 +164,75 @@ export class NativePluginSettingTab extends PluginSettingTab {
 				});
 		});
 
+		// 默认排序字段
+		group.addSetting((setting) => {
+			setting
+				.setName('默认排序字段')
+				.setDesc('打开图片管理器时的默认排序方式')
+				.addDropdown((dropdown) => {
+					dropdown
+						.addOption('mtime', '修改时间')
+						.addOption('ctime', '创建时间')
+						.addOption('size', '文件大小')
+						.addOption('name', '文件名')
+						.addOption('references', '引用数量')
+						.setValue(this.plugin.settings.imageManager?.defaultSortField || 'mtime')
+						.onChange(async (value) => {
+							if (!this.plugin.settings.imageManager) {
+								this.plugin.settings.imageManager = {};
+							}
+							this.plugin.settings.imageManager.defaultSortField = value as any;
+							await this.plugin.saveSettings();
+						});
+				});
+		});
+
+		// 默认排序顺序
+		group.addSetting((setting) => {
+			setting
+				.setName('默认排序顺序')
+				.setDesc('打开图片管理器时的默认排序顺序')
+				.addDropdown((dropdown) => {
+					dropdown
+						.addOption('desc', '降序')
+						.addOption('asc', '升序')
+						.setValue(this.plugin.settings.imageManager?.defaultSortOrder || 'desc')
+						.onChange(async (value) => {
+							if (!this.plugin.settings.imageManager) {
+								this.plugin.settings.imageManager = {};
+							}
+							this.plugin.settings.imageManager.defaultSortOrder = value as any;
+							await this.plugin.saveSettings();
+						});
+				});
+		});
+
+		// 排除文件夹
+		group.addSetting((setting) => {
+			setting
+				.setName('排除文件夹')
+				.setDesc('在图片管理器中排除这些文件夹（每行一个路径）')
+				.addTextArea((text) => {
+					const excludedFolders = this.plugin.settings.imageManager?.excludedFolders || [];
+					text
+						.setPlaceholder('输入要排除的文件夹路径，每行一个\n例如：\n.obsidian\nTemplates\nArchive')
+						.setValue(excludedFolders.join('\n'))
+						.onChange(debounce(async (value) => {
+							if (!this.plugin.settings.imageManager) {
+								this.plugin.settings.imageManager = {};
+							}
+							// 将文本分割成行，并过滤空行
+							const folders = value.split('\n')
+								.map(line => line.trim())
+								.filter(line => line.length > 0);
+							this.plugin.settings.imageManager.excludedFolders = folders;
+							await this.plugin.saveSettings();
+						}, 500));
+					text.inputEl.rows = 6;
+					text.inputEl.style.width = '100%';
+				});
+		});
+
 		// 删除确认
 		group.addSetting((setting) => {
 			setting

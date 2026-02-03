@@ -13,6 +13,7 @@ import {
 
 export class ImageLoaderService {
 	private customFileTypes: CustomFileTypeConfig[] = [];
+	private excludedFolders: string[] = [];
 
 	constructor(private app: App) {}
 
@@ -21,6 +22,13 @@ export class ImageLoaderService {
 	 */
 	setCustomFileTypes(types: CustomFileTypeConfig[]): void {
 		this.customFileTypes = types.filter(t => t.fileExtension && t.coverExtension);
+	}
+
+	/**
+	 * 设置排除的文件夹列表
+	 */
+	setExcludedFolders(folders: string[]): void {
+		this.excludedFolders = folders.map(f => f.trim()).filter(f => f.length > 0);
 	}
 
 	/**
@@ -46,6 +54,13 @@ export class ImageLoaderService {
 
 		// 筛选图片文件
 		const imageFiles = allFiles.filter((file) => {
+			// 排除文件夹逻辑
+			for (const excludedFolder of this.excludedFolders) {
+				if (file.path.startsWith(excludedFolder + "/") || file.path === excludedFolder) {
+					return false;
+				}
+			}
+
 			// 文件夹筛选逻辑
 			let inFolder = true;
 			if (folderPath && folderPath.trim() !== "") {

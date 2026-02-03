@@ -65,7 +65,8 @@
 	align-items: center;
 	gap: 6px;
 	padding: 4px 10px;
-	background: transparent;
+	height: 32px;
+	background: var(--background-secondary);
 	color: var(--text-muted);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--button-radius);
@@ -74,12 +75,12 @@
 	transition: all 0.15s ease;
 	flex-shrink: 0;
 	max-width: 300px;
+	box-shadow: none !important;
 }
 
 .image-manager-folder-button:hover {
 	background: var(--background-modifier-hover);
 	color: var(--text-normal);
-	border-color: var(--text-muted);
 }
 
 .image-manager-folder-icon {
@@ -99,6 +100,34 @@
 	white-space: nowrap;
 }
 
+/* 清空文件夹按钮 */
+.image-manager-clear-folder-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	padding: 4px;
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--button-radius);
+	cursor: pointer;
+	transition: all 0.15s ease;
+	flex-shrink: 0;
+	box-shadow: none !important;
+}
+
+.image-manager-clear-folder-button:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.image-manager-clear-folder-button svg {
+	width: 14px;
+	height: 14px;
+}
+
 /* 内联文件夹输入 */
 .image-manager-folder-input-container {
 	display: inline-block;
@@ -109,17 +138,18 @@
 .image-manager-folder-input-inline {
 	width: 100%;
 	padding: 4px 10px;
-	background: var(--background-primary);
+	background: transparent;
 	color: var(--text-normal);
 	border: 1px solid var(--interactive-accent);
-	border-radius: var(--input-radius);
+	border-radius: var(--button-radius);
 	font-size: 13px;
 	outline: none;
+	box-shadow: none !important;
 }
 
 .image-manager-folder-input-inline:focus {
 	border-color: var(--interactive-accent);
-	box-shadow: 0 0 0 2px var(--background-modifier-border);
+	box-shadow: none !important;
 }
 
 /* 文件夹建议列表 */
@@ -146,11 +176,16 @@
 }
 
 /* ==================== 操作按钮 ==================== */
-.image-manager-filter-button,
-.image-manager-check-refs-button {
-	padding: 4px 10px;
-	min-width: 80px;
-	background: transparent;
+/* 统一的按钮样式 */
+.image-manager-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	padding: 4px 12px;
+	min-width: 60px;
+	height: 28px;
+	background: var(--background-secondary);
 	color: var(--text-muted);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--button-radius);
@@ -158,36 +193,83 @@
 	font-size: 12px;
 	transition: all 0.15s ease;
 	white-space: nowrap;
-	text-align: center;
+	flex-shrink: 0;
+	box-shadow: none !important;
+}
+
+.image-manager-button:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.image-manager-button.active {
+	background: var(--background-modifier-hover);
+	color: var(--interactive-accent);
+}
+
+.image-manager-button.batch-delete {
+	color: var(--text-error);
+}
+
+.image-manager-button.batch-delete:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-error);
+}
+
+.image-manager-button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* 保留旧的按钮样式以保证向后兼容 */
+.image-manager-filter-button,
+.image-manager-check-refs-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	padding: 4px 12px;
+	min-width: 60px;
+	height: 28px;
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--button-radius);
+	cursor: pointer;
+	font-size: 12px;
+	transition: all 0.15s ease;
+	white-space: nowrap;
+	flex-shrink: 0;
+	box-shadow: none !important;
 }
 
 .image-manager-filter-button:hover,
 .image-manager-check-refs-button:hover {
 	background: var(--background-modifier-hover);
 	color: var(--text-normal);
-	border-color: var(--text-muted);
+	border-color: var(--background-modifier-border-hover);
 }
 
 .image-manager-filter-button-active {
-	background: var(--interactive-accent) !important;
-	color: var(--text-on-accent) !important;
+	background: var(--background-modifier-hover) !important;
+	color: var(--interactive-accent) !important;
 	border-color: var(--interactive-accent) !important;
 }
 
 .image-manager-check-refs-button.multi-select-active {
-	background: var(--interactive-accent);
-	color: var(--text-on-accent);
+	background: var(--background-modifier-hover);
+	color: var(--interactive-accent);
 	border-color: var(--interactive-accent);
 }
 
 .image-manager-check-refs-button.batch-delete {
-	background: var(--text-error);
-	color: var(--text-on-accent);
+	color: var(--text-error);
 	border-color: var(--text-error);
 }
 
 .image-manager-check-refs-button.batch-delete:hover {
 	background: var(--text-error);
+	color: var(--text-on-accent);
 	opacity: 0.9;
 }
 
@@ -268,42 +350,58 @@
 .image-manager-sort-select {
 	padding: 4px 8px;
 	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--input-radius);
-	background: var(--background-primary);
+	border-radius: var(--button-radius);
+	background: var(--background-secondary);
 	color: var(--text-normal);
 	font-size: 12px;
 	cursor: pointer;
-	transition: border-color 0.15s ease;
+	transition: all 0.15s ease;
+	box-shadow: none !important;
+	appearance: none;
+	-webkit-appearance: none;
+	-moz-appearance: none;
 }
 
 .image-manager-sort-select:focus {
 	outline: none;
 	border-color: var(--interactive-accent);
+	box-shadow: none !important;
 }
 
 .image-manager-sort-select:hover {
-	border-color: var(--text-muted);
+	background-color: var(--background-modifier-hover);
+	border-color: var(--background-modifier-border-hover);
+}
+
+.image-manager-sort-select option {
+	background: var(--background-primary);
+	color: var(--text-normal);
+	padding: 4px 8px;
 }
 
 .image-manager-sort-order-button {
-	padding: 4px 8px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--button-radius);
-	background: var(--background-primary);
-	color: var(--text-muted);
-	font-size: 12px;
-	cursor: pointer;
-	transition: all 0.15s ease;
-	display: flex;
+	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	min-width: 28px;
+	gap: 4px;
+	padding: 4px 12px;
+	min-width: 60px;
+	height: 28px;
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--button-radius);
+	cursor: pointer;
+	font-size: 12px;
+	transition: all 0.15s ease;
+	white-space: nowrap;
+	flex-shrink: 0;
+	box-shadow: none !important;
 }
 
 .image-manager-sort-order-button:hover {
 	background: var(--background-modifier-hover);
 	color: var(--text-normal);
-	border-color: var(--text-muted);
 }
 
 /* ==================== 网格面板 ==================== */
@@ -567,6 +665,8 @@
 	flex-direction: column;
 	gap: 6px;
 	min-height: 0;
+	pointer-events: auto;
+	user-select: none;
 }
 
 .image-manager-image-name {
@@ -600,42 +700,65 @@
 	color: var(--text-faint);
 }
 
-/* 操作按钮 */
+/* 操作按钮容器 */
 .image-manager-image-actions {
+	position: absolute;
+	bottom: 4px;
+	left: 4px;
 	display: flex;
 	gap: 4px;
-	margin-top: auto;
+	flex-direction: row;
+	opacity: 0;
+	transition: opacity 0.2s ease;
+	z-index: 3; /* 确保在最上层，高于格式和引用标签 */
+	background: var(--background-secondary-alt);
 	padding: 4px;
+	border-radius: var(--radius-s);
 }
 
+.image-manager-grid-item:hover .image-manager-image-actions {
+	opacity: 1;
+}
+
+/* 操作按钮样式 */
 .image-manager-action-button {
-	flex: 1;
-	padding: 5px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	padding: 4px;
 	border: none;
-	border-radius: var(--button-radius);
-	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+	background: transparent;
 	color: var(--text-muted);
 	cursor: pointer;
 	transition: all 0.15s ease;
-	font-size: 11px;
-	text-align: center;
+}
+
+.image-manager-action-button svg {
+	width: 16px;
+	height: 16px;
 }
 
 .image-manager-action-button:hover {
-	background: var(--background-modifier-hover);
-	color: var(--text-normal);
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
 }
 
 .image-manager-open-button:hover {
-	color: var(--color-green);
+	background: var(--color-green);
+	color: white;
 }
 
 .image-manager-rename-button:hover {
-	color: var(--color-blue);
+	background: var(--color-blue);
+	color: white;
 }
 
 .image-manager-delete-button:hover {
-	color: var(--color-red);
+	background: var(--color-red);
+	color: white;
 }
 
 /* ==================== 预览模态框 ==================== */

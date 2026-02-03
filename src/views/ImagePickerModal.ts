@@ -506,25 +506,28 @@ export class ImagePickerModal extends Modal {
 		if (!editor) return;
 
 		// 构建图片链接
+		// 语法规则：
+		// - 无标题：![[image|dark|position|size]] 或 ![[image|position|size]]
+		// - 有标题：![[image#position#dark|caption|size]] 或 ![[image#position|caption|size]]
 		let imageLink = "";
 		const fileName = image.name;
 		
 		if (this.imageCaption) {
-			// 有标题
+			// 有标题：使用 # 语法
 			if (this.invertColor) {
-				// 位置 + 反色 + 标题：![[image.png#center#dark|caption]]
+				// 位置 + 反色 + 标题：![[image#position#dark|caption]]
 				imageLink = `![[${fileName}#${this.imagePosition}#dark|${this.imageCaption}]]`;
 			} else {
-				// 位置 + 标题：![[image.png#center|caption]]
+				// 位置 + 标题：![[image#position|caption]]
 				imageLink = `![[${fileName}#${this.imagePosition}|${this.imageCaption}]]`;
 			}
 		} else {
-			// 无标题
+			// 无标题：使用 | 语法
 			if (this.invertColor) {
-				// 位置 + 反色：![[image.png|dark|center]]
+				// 反色 + 位置：![[image|dark|position]]
 				imageLink = `![[${fileName}|dark|${this.imagePosition}]]`;
 			} else {
-				// 仅位置：![[image.png|center]]
+				// 仅位置：![[image|position]]
 				imageLink = `![[${fileName}|${this.imagePosition}]]`;
 			}
 		}

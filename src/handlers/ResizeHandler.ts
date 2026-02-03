@@ -113,6 +113,18 @@ export class ResizeHandler {
 			return;
 		}
 
+		// 检查图片是否在模态框或其他非编辑器容器中
+		// 避免在图片选择器等 Modal 中触发调整大小功能
+		let element: HTMLElement | null = img;
+		while (element) {
+			if (element.classList.contains('modal') || 
+			    element.classList.contains('modal-container') ||
+			    element.classList.contains('image-picker-container')) {
+				return;
+			}
+			element = element.parentElement;
+		}
+
 		event.preventDefault();
 
 		const editor = activeView.editor;
@@ -145,6 +157,17 @@ export class ResizeHandler {
 		const activeView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
 		if (!activeView || activeView.getMode() === 'preview') {
 			return;
+		}
+
+		// 检查图片是否在模态框或其他非编辑器容器中
+		let element: HTMLElement | null = img;
+		while (element) {
+			if (element.classList.contains('modal') || 
+			    element.classList.contains('modal-container') ||
+			    element.classList.contains('image-picker-container')) {
+				return;
+			}
+			element = element.parentElement;
 		}
 
 		const rect = img.getBoundingClientRect();

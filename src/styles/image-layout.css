@@ -31,12 +31,47 @@ body:not(.image-zoom) .view-content img[alt$="center"]:not([class*="emoji"]) {
   display: block;
 }
 
+/* 容器对齐样式 */
+.image-resize-container.afm-align-center {
+  clear: both;
+  margin: 0 auto !important;
+  display: block;
+}
+
+.image-resize-container.afm-align-left {
+  float: left;
+  margin: 0.5rem 1rem 0.5rem 0 !important;
+  clear: both;
+}
+
+.image-resize-container.afm-align-right {
+  float: right;
+  margin: 0.5rem 0 0.5rem 1rem !important;
+  clear: both;
+}
+
 img[alt$="inline"]:not([class*="emoji"]) {
   display: inline !important;
   padding: 0.05em 0.05em !important;
   vertical-align: bottom;
 }
 
+/* 编辑模式下的左右对齐 - 使用 margin 而非 float，便于右键定位 */
+.markdown-source-view.mod-cm6 img[alt$="left"]:not([class*="emoji"]) {
+  margin: auto !important;
+  margin-left: 0 !important;
+  display: block;
+  padding: 0 !important;
+}
+
+.markdown-source-view.mod-cm6 img[alt$="right"]:not([class*="emoji"]) {
+  margin: auto !important;
+  margin-right: 0 !important;
+  display: block;
+  padding: 0 !important;
+}
+
+/* 阅读模式下的左右对齐 - 使用 float */
 img[alt$="left"]:not([class*="emoji"]) {
   float: left;
   padding: 0.5em 0.5em 0.5em 0.5em !important;
@@ -66,7 +101,17 @@ img[alt$="right"]:not([class*="emoji"]) {
   font-size: 0.85rem;
 }
 
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="left"] {
+/* 编辑模式下有标题的左对齐图片 - 使用 margin 便于右键定位 */
+.markdown-source-view.mod-cm6.is-live-preview .image-embed[src*="left"] {
+  position: relative;
+  margin: 0.5rem auto 0.5rem 0 !important;
+  clear: both;
+  display: table;
+  float: none;
+}
+
+/* 阅读模式下有标题的左对齐图片 - 使用 float */
+:is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="left"] {
   position: relative;
   float: left;
   margin: 0.5rem 1rem 0.5rem 0 !important;
@@ -84,7 +129,17 @@ img[alt$="right"]:not([class*="emoji"]) {
   font-size: 0.85rem;
 }
 
-:is(.markdown-preview-view,.markdown-rendered,.markdown-source-view.mod-cm6.is-live-preview) .image-embed[src*="right"] {
+/* 编辑模式下有标题的右对齐图片 - 使用 margin 便于右键定位 */
+.markdown-source-view.mod-cm6.is-live-preview .image-embed[src*="right"] {
+  position: relative;
+  margin: 0.5rem 0 0.5rem auto !important;
+  clear: both;
+  display: table;
+  float: none;
+}
+
+/* 阅读模式下有标题的右对齐图片 - 使用 float */
+:is(.markdown-preview-view,.markdown-rendered) .image-embed[src*="right"] {
   position: relative;
   float: right;
   margin: 0.5rem 0 0.5rem 1rem !important;
@@ -117,4 +172,9 @@ img[alt$="right"]:not([class*="emoji"]) {
   caption-side: bottom;
   text-align: center;
   font-size: 0.85rem;
+}
+
+/* 编辑标题时隐藏 ::after 伪元素 */
+.image-embed.afm-editing-caption::after {
+  display: none !important;
 }

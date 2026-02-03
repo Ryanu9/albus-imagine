@@ -81,6 +81,12 @@ export interface ImageManagerSettings {
 	invertSvgInDarkMode?: boolean;
 	/** 自定义文件类型配置 */
 	customFileTypes?: CustomFileTypeConfig[];
+	/** 默认排序字段 */
+	defaultSortField?: SortField;
+	/** 默认排序顺序 */
+	defaultSortOrder?: SortOrder;
+	/** 排除的文件夹列表（不在图片管理器中显示） */
+	excludedFolders?: string[];
 }
 
 /**

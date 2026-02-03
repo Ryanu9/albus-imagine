@@ -85,29 +85,24 @@ export class ImageContextMenu extends Component {
 
 		// 图片对齐
 		this.addAlignmentSubmenu(menu, img);
-		menu.addSeparator();
 
 		// 图片反色
 		this.addDarkModeMenuItem(menu, img);
-		menu.addSeparator();
 
-		// 复制路径
-		this.addCopyPathMenuItem(menu, img);
-		menu.addSeparator();
+		// 编辑标题
+		this.addEditCaptionMenuItem(menu, img);
 
-		// 复制图片
-		this.addCopyImageMenuItem(menu, event);
-		menu.addSeparator();
-
-		// 删除链接
-		this.addDeleteLinkMenuItem(menu, img);
-		menu.addSeparator();
+		// 打开源文件
+		this.addOpenSourceFileMenuItem(menu, img);
 
 		// 文件操作
 		if (!Platform.isMobile) {
 			this.addShowInNavigationMenuItem(menu, img);
 			this.addShowInSystemExplorerMenuItem(menu, img);
 		}
+
+		// 删除链接
+		this.addDeleteLinkMenuItem(menu, img);
 	}
 
 	private addAlignmentSubmenu(menu: Menu, img: HTMLImageElement): void {
@@ -137,6 +132,14 @@ export class ImageContextMenu extends Component {
 			item.setTitle("深色反色")
 				.setIcon("moon")
 				.onClick(() => this.toggleDarkMode(img));
+		});
+	}
+
+	private addEditCaptionMenuItem(menu: Menu, img: HTMLImageElement): void {
+		menu.addItem((item) => {
+			item.setTitle("编辑标题")
+				.setIcon("text")
+				.onClick(() => this.editCaption(img));
 		});
 	}
 
@@ -242,30 +245,27 @@ export class ImageContextMenu extends Component {
 
 	/**
 	 * 更新链接的对齐参数
-	 * 支持格式：
-	 * - ![[image|dark|center|size]] -> | 语法
-	 * - ![[image#center#dark|title|size]] -> # 语法（带标题）
-	 * - ![[image#center|title|size]] -> # 语法（带标题）
+	 * 语法规则：
+	 * - 无标题：![[image|dark|position|size]] 或 ![[image|position|size]]
+	 * - 有标题：![[image#position#dark|caption|size]] 或 ![[image#position|caption|size]]
 	 */
 	private updateLinkAlignment(link: string, alignment: "center" | "left" | "right"): string {
 		if (!link.startsWith("![[") || !link.endsWith("]]")) {
 			return link;
 		}
 
-		const inner = link.slice(3, -2); // 移除 ![[  和 ]]
+		const inner = link.slice(3, -2);
 		const parts = inner.split("|");
 		const imagePath = parts[0];
-
-		// 判断是否使用 # 语法（有标题）
 		const hasHashSyntax = imagePath.includes("#");
 
 		if (hasHashSyntax) {
-			// # 语法：image#position[#dark]
+			// # 语法：有标题
 			const hashParts = imagePath.split("#");
 			const baseImage = hashParts[0];
 			const hasDark = hashParts.includes("dark");
 			
-			// 重建图片路径部分
+			// 重建图片路径，新位置
 			const newImagePath = hasDark ? `${baseImage}#${alignment}#dark` : `${baseImage}#${alignment}`;
 			
 			// 保留标题和尺寸
@@ -276,23 +276,25 @@ export class ImageContextMenu extends Component {
 				return `![[${newImagePath}]]`;
 			}
 		} else {
-			// | 语法：image|[dark|]position|[size]
+			// | 语法：无标题
+			const baseImage = parts[0];
 			const hasDark = parts.some(p => p.trim() === "dark");
-			const sizeIndex = parts.findIndex(p => /^\d+$/.test(p.trim()));
-			const size = sizeIndex > 0 ? parts[sizeIndex].trim() : null;
+			const size = parts.find(p => /^\d+$/.test(p.trim())) || "";
 
-			// 重建链接
-			let newParts = [imagePath];
-			if (hasDark) newParts.push("dark");
-			newParts.push(alignment);
-			if (size) newParts.push(size);
-
-			return `![[${newParts.join("|")}]]`;
+			// 重建链接：image|[dark|]position|[size]
+			if (hasDark) {
+				return size ? `![[${baseImage}|dark|${alignment}|${size}]]` : `![[${baseImage}|dark|${alignment}]]`;
+			} else {
+				return size ? `![[${baseImage}|${alignment}|${size}]]` : `![[${baseImage}|${alignment}]]`;
+			}
 		}
 	}
 
 	/**
 	 * 更新链接的 dark 参数
+	 * 语法规则：
+	 * - 无标题：![[image|dark|position|size]] 或 ![[image|position|size]]
+	 * - 有标题：![[image#position#dark|caption|size]] 或 ![[image#position|caption|size]]
 	 */
 	private updateLinkDarkMode(link: string, enableDark: boolean): string {
 		if (!link.startsWith("![[") || !link.endsWith("]]")) {
@@ -302,12 +304,10 @@ export class ImageContextMenu extends Component {
 		const inner = link.slice(3, -2);
 		const parts = inner.split("|");
 		const imagePath = parts[0];
-
-		// 判断是否使用 # 语法
 		const hasHashSyntax = imagePath.includes("#");
 
 		if (hasHashSyntax) {
-			// # 语法
+			// # 语法：有标题
 			const hashParts = imagePath.split("#");
 			const baseImage = hashParts[0];
 			const position = hashParts.find(p => ["center", "left", "right"].includes(p)) || "center";
@@ -321,65 +321,49 @@ export class ImageContextMenu extends Component {
 				return `![[${newImagePath}]]`;
 			}
 		} else {
-			// | 语法
+			// | 语法：无标题
+			const baseImage = parts[0];
 			const position = parts.find(p => ["center", "left", "right"].includes(p.trim())) || "center";
-			const sizeIndex = parts.findIndex(p => /^\d+$/.test(p.trim()));
-			const size = sizeIndex > 0 ? parts[sizeIndex].trim() : null;
+			const size = parts.find(p => /^\d+$/.test(p.trim())) || "";
 
-			let newParts = [imagePath];
-			if (enableDark) newParts.push("dark");
-			newParts.push(position);
-			if (size) newParts.push(size);
-
-			return `![[${newParts.join("|")}]]`;
+			// 重建链接：image|[dark|]position|[size]
+			if (enableDark) {
+				return size ? `![[${baseImage}|dark|${position}|${size}]]` : `![[${baseImage}|dark|${position}]]`;
+			} else {
+				return size ? `![[${baseImage}|${position}|${size}]]` : `![[${baseImage}|${position}]]`;
+			}
 		}
 	}
 
-	private addCopyPathMenuItem(menu: Menu, img: HTMLImageElement): void {
+	private addOpenSourceFileMenuItem(menu: Menu, img: HTMLImageElement): void {
 		menu.addItem((item) => {
-			item.setTitle("复制图片路径").setIcon("link").onClick(async () => {
+			item.setTitle("打开源文件").setIcon("file-text").onClick(async () => {
 				const imagePath = this.getImagePath(img);
 				if (!imagePath) {
 					new Notice("无法获取图片路径");
 					return;
 				}
 
-				await navigator.clipboard.writeText(imagePath);
-				new Notice("路径已复制");
-			});
-		});
-	}
+				const file = this.app.vault.getAbstractFileByPath(imagePath);
+				if (!(file instanceof TFile)) {
+					new Notice("文件不存在");
+					return;
+				}
 
-	private addCopyImageMenuItem(menu: Menu, event: MouseEvent): void {
-		menu.addItem((item) => {
-			item.setTitle("复制图片").setIcon("copy").onClick(async () => {
-				const targetImg = event.target as HTMLImageElement;
-				const img = new Image();
-				img.crossOrigin = "anonymous";
+				// 检查是否为自定义文件类型的封面文件
+				const sourceFile = this.getSourceFileForCover(file);
+				const fileToOpen = sourceFile || file;
 
-				img.onload = async () => {
-					try {
-						const canvas = document.createElement("canvas");
-						canvas.width = img.naturalWidth;
-						canvas.height = img.naturalHeight;
-						const ctx = canvas.getContext("2d");
-						if (!ctx) return;
-
-						ctx.drawImage(img, 0, 0);
-						const blob = await new Promise<Blob>((resolve, reject) => {
-							canvas.toBlob((b) => b ? resolve(b) : reject(), "image/png");
-						});
-
-						await navigator.clipboard.write([
-							new ClipboardItem({ [blob.type]: blob })
-						]);
-						new Notice("图片已复制");
-					} catch (error) {
-						new Notice("复制失败");
-					}
-				};
-
-				img.src = targetImg.src;
+				try {
+					await this.app.workspace.openLinkText(
+						fileToOpen.path,
+						'',
+						true
+					);
+				} catch (error) {
+					console.error("打开文件失败:", error);
+					new Notice("打开文件失败");
+				}
 			});
 		});
 	}
@@ -674,6 +658,303 @@ export class ImageContextMenu extends Component {
 			// 只删除图片链接部分
 			const newLine = before + after;
 			editor.setLine(match.lineNumber, newLine);
+		}
+	}
+
+	/**
+	 * 获取封面文件对应的源文件（工程文件）
+	 * 如果当前文件是某个自定义文件类型的封面，返回对应的工程文件，否则返回 null
+	 */
+	private getSourceFileForCover(coverFile: TFile): TFile | null {
+		const customFileTypes = this.settings.customFileTypes || [];
+		if (customFileTypes.length === 0) {
+			return null;
+		}
+
+		const coverPath = coverFile.path;
+		const coverExtension = coverFile.extension;
+
+		// 遍历所有自定义文件类型配置
+		for (const config of customFileTypes) {
+			// 检查扩展名是否匹配
+			if (config.coverExtension !== coverExtension) {
+				continue;
+			}
+
+			// 尝试找到对应的工程文件
+			const sourceFilePath = this.getSourcePathFromCover(coverPath, config);
+			if (sourceFilePath) {
+				const sourceFile = this.app.vault.getAbstractFileByPath(sourceFilePath);
+				if (sourceFile instanceof TFile) {
+					return sourceFile;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * 从封面文件路径推导出源文件路径
+	 */
+	private getSourcePathFromCover(coverPath: string, config: { fileExtension: string; coverExtension: string; coverFolder: string }): string | null {
+		const directory = coverPath.substring(0, coverPath.lastIndexOf("/"));
+		const fileName = coverPath.substring(coverPath.lastIndexOf("/") + 1);
+		const baseName = fileName.substring(0, fileName.lastIndexOf("."));
+
+		// 确定源文件所在的目录
+		let sourceDir = directory;
+		if (config.coverFolder && config.coverFolder.trim() !== "") {
+			// 如果配置了封面文件夹，需要从封面目录回到源文件目录
+			const coverFolder = config.coverFolder.trim();
+			
+			if (coverFolder.startsWith("/")) {
+				// 绝对路径：不支持反向推导
+				return null;
+			} else {
+				// 相对路径：移除封面文件夹部分
+				if (directory.endsWith("/" + coverFolder)) {
+					sourceDir = directory.substring(0, directory.length - coverFolder.length - 1);
+				} else if (directory.endsWith(coverFolder)) {
+					sourceDir = directory.substring(0, directory.length - coverFolder.length);
+					if (sourceDir.endsWith("/")) {
+						sourceDir = sourceDir.substring(0, sourceDir.length - 1);
+					}
+				} else {
+					// 封面文件不在预期的文件夹中
+					return null;
+				}
+			}
+		}
+
+		// 构建源文件路径
+		return `${sourceDir}/${baseName}.${config.fileExtension}`;
+	}
+
+	/**
+	 * 编辑图片标题
+	 */
+	private async editCaption(img: HTMLImageElement): Promise<void> {
+		const imagePath = this.getImagePath(img);
+		if (!imagePath) {
+			new Notice("无法获取图片路径");
+			return;
+		}
+
+		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (!activeView) {
+			new Notice("请在编辑模式下使用");
+			return;
+		}
+
+		const editor = activeView.editor;
+		const match = await this.findSingleImageMatch(editor, imagePath, img);
+		if (!match) {
+			new Notice("未找到图片链接");
+			return;
+		}
+
+		// 获取当前标题
+		const currentCaption = this.extractCaptionFromLink(match.fullMatch);
+
+		// 找到图片容器（.image-embed）
+		const imageEmbed = img.closest(".image-embed") as HTMLElement;
+		if (!imageEmbed) {
+			new Notice("无法找到图片容器");
+			return;
+		}
+
+		// 创建输入框
+		const input = document.createElement("input");
+		input.type = "text";
+		input.value = currentCaption;
+		input.placeholder = "输入图片标题（留空删除）";
+		input.className = "afm-caption-input";
+
+		// 设置样式
+		input.style.cssText = `
+			display: block;
+			width: 100%;
+			margin: 0.5rem 0;
+			padding: 0;
+			font-size: 0.85rem;
+			text-align: center;
+			background: transparent;
+			border: none;
+			outline: none;
+			box-shadow: none !important;
+			box-sizing: border-box;
+		`;
+
+		// 将输入框插入到图片容器内部的最后
+		imageEmbed.appendChild(input);
+		
+		// 隐藏标题的 ::after 伪元素，实现无缝编辑
+		imageEmbed.addClass("afm-editing-caption");
+		
+		input.focus();
+		input.select();
+
+		let isHandling = false;
+
+		// 处理输入
+		const handleInput = async (save: boolean) => {
+			if (isHandling) return;
+			isHandling = true;
+
+			if (save) {
+				const newCaption = input.value.trim();
+				const newLink = this.updateLinkCaptionOnly(match.fullMatch, newCaption);
+				const line = editor.getLine(match.lineNumber);
+				const newLine = line.replace(match.fullMatch, newLink);
+				
+				// 保存当前滚动位置
+				const scrollTop = activeView.containerEl.scrollTop;
+				
+				editor.setLine(match.lineNumber, newLine);
+				
+				// 恢复滚动位置
+				activeView.containerEl.scrollTop = scrollTop;
+
+				if (newCaption) {
+					new Notice("标题已更新");
+				} else {
+					new Notice("标题已删除");
+				}
+			}
+			
+			// 恢复标题显示
+			imageEmbed.removeClass("afm-editing-caption");
+			
+			if (input.parentElement) {
+				input.remove();
+			}
+		};
+
+		input.addEventListener("keydown", async (e) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				await handleInput(true);
+			} else if (e.key === "Escape") {
+				e.preventDefault();
+				await handleInput(false);
+			}
+		});
+
+		input.addEventListener("blur", () => {
+			// 直接同步执行，确保流畅
+			if (!isHandling) {
+				void handleInput(true);
+			}
+		});
+	}
+
+	/**
+	 * 从链接中提取标题
+	 */
+	private extractCaptionFromLink(link: string): string {
+		if (!link.startsWith("![[") || !link.endsWith("]]")) {
+			return "";
+		}
+
+		const inner = link.slice(3, -2);
+		const parts = inner.split("|");
+
+		if (parts.length < 2) {
+			return "";
+		}
+
+		// 检查是否使用 # 语法
+		const imagePath = parts[0];
+		const hasHashSyntax = imagePath.includes("#");
+
+		if (hasHashSyntax) {
+			// # 语法：image#position[#dark]|[caption]|[size]
+			// 标题是第一个非数字的部分
+			for (let i = 1; i < parts.length; i++) {
+				const part = parts[i].trim();
+				if (!/^\d+$/.test(part)) {
+					return part;
+				}
+			}
+		} else {
+			// | 语法：image|[dark|]position|[caption]|[size]
+			// 需要过滤掉关键词和尺寸
+			for (let i = 1; i < parts.length; i++) {
+				const part = parts[i].trim();
+				if (
+					part !== "dark" &&
+					!["center", "left", "right"].includes(part) &&
+					!/^\d+$/.test(part)
+				) {
+					return part;
+				}
+			}
+		}
+
+		return "";
+	}
+
+	/**
+	 * 仅更新链接中的标题部分
+	 * 语法规则：
+	 * - 无标题：![[image|dark|position|size]] 或 ![[image|position|size]]
+	 * - 有标题：![[image#position#dark|caption|size]] 或 ![[image#position|caption|size]]
+	 */
+	private updateLinkCaptionOnly(link: string, caption: string): string {
+		if (!link.startsWith("![[") || !link.endsWith("]]")) {
+			return link;
+		}
+
+		const inner = link.slice(3, -2);
+		const parts = inner.split("|");
+		const imagePath = parts[0];
+		const hasHashSyntax = imagePath.includes("#");
+
+		// 提取现有参数
+		let position = "center";
+		let hasDark = false;
+		let size = "";
+
+		if (hasHashSyntax) {
+			// 当前是 # 语法（有标题或曾经有标题）
+			const hashParts = imagePath.split("#");
+			const baseImage = hashParts[0];
+			position = hashParts.find(p => ["center", "left", "right"].includes(p)) || "center";
+			hasDark = hashParts.includes("dark");
+			size = parts.find(p => /^\d+$/.test(p.trim())) || "";
+
+			if (caption) {
+				// 保持 # 语法，更新标题
+				const newImagePath = hasDark ? `${baseImage}#${position}#dark` : `${baseImage}#${position}`;
+				return size ? `![[${newImagePath}|${caption}|${size}]]` : `![[${newImagePath}|${caption}]]`;
+			} else {
+				// 删除标题，转换为 | 语法
+				if (hasDark) {
+					return size ? `![[${baseImage}|dark|${position}|${size}]]` : `![[${baseImage}|dark|${position}]]`;
+				} else {
+					return size ? `![[${baseImage}|${position}|${size}]]` : `![[${baseImage}|${position}]]`;
+				}
+			}
+		} else {
+			// 当前是 | 语法（无标题）
+			const baseImage = parts[0];
+			hasDark = parts.some(p => p.trim() === "dark");
+			position = parts.find(p => ["center", "left", "right"].includes(p.trim())) || "center";
+			size = parts.find(p => /^\d+$/.test(p.trim())) || "";
+
+			if (caption) {
+				// 添加标题，转换为 # 语法
+				const newImagePath = hasDark ? `${baseImage}#${position}#dark` : `${baseImage}#${position}`;
+				return size ? `![[${newImagePath}|${caption}|${size}]]` : `![[${newImagePath}|${caption}]]`;
+			} else {
+				// 保持 | 语法，无标题
+				if (hasDark) {
+					return size ? `![[${baseImage}|dark|${position}|${size}]]` : `![[${baseImage}|dark|${position}]]`;
+				} else {
+					return size ? `![[${baseImage}|${position}|${size}]]` : `![[${baseImage}|${position}]]`;
+				}
+			}
 		}
 	}
 
