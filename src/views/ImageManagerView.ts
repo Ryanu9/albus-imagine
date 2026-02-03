@@ -53,9 +53,6 @@ export class ImageManagerView extends ItemView {
 	private searchContainer: HTMLElement;
 	private gridContainer: HTMLElement;
 
-	// 懒加载
-	private intersectionObserver: IntersectionObserver | null = null;
-
 	constructor(leaf: WorkspaceLeaf, settings: ImageManagerSettings) {
 		super(leaf);
 		this.settings = settings;
@@ -91,46 +88,13 @@ export class ImageManagerView extends ItemView {
 		contentEl.empty();
 		contentEl.addClass("image-manager-container");
 
-		this.initIntersectionObserver();
 		this.setupLayout();
 		await this.loadImages();
 	}
 
 	async onClose(): Promise<void> {
 		// 清理工作
-		if (this.intersectionObserver) {
-			this.intersectionObserver.disconnect();
-			this.intersectionObserver = null;
-		}
 		this.contentEl.empty();
-	}
-
-	/**
-	 * 初始化 IntersectionObserver 用于懒加载
-	 */
-	private initIntersectionObserver(): void {
-		this.intersectionObserver = new IntersectionObserver(
-			(entries) => {
-				entries.forEach((entry) => {
-					if (entry.isIntersecting) {
-						const imgEl = entry.target as HTMLImageElement;
-						const dataSrc = imgEl.getAttribute("data-src");
-						if (dataSrc && !imgEl.src) {
-							// 开始加载图片
-							imgEl.src = dataSrc;
-							imgEl.removeAttribute("data-src");
-							// 加载后停止观察
-							this.intersectionObserver?.unobserve(imgEl);
-						}
-					}
-				});
-			},
-			{
-				// 提前 200px 开始加载
-				rootMargin: "200px",
-				threshold: 0.01,
-			}
-		);
 	}
 
 	/**
@@ -535,15 +499,10 @@ export class ImageManagerView extends ItemView {
 					cls: image.displayFile.extension.toLowerCase() === "svg" ? "image-manager-svg-image" : "image-manager-thumbnail-image",
 				});
 				
-				// 懒加载：使用 data-src 而不是直接设置 src
+				// 本地图片立即加载，不使用懒加载
 				const resourcePath = this.app.vault.getResourcePath(image.displayFile);
-				img.setAttribute("data-src", resourcePath);
+				img.src = resourcePath;
 				img.alt = image.name;
-
-				// 将图片元素加入 IntersectionObserver
-				if (this.intersectionObserver) {
-					this.intersectionObserver.observe(img);
-				}
 				
 				// 添加加载错误处理，防止循环加载
 				let loadFailed = false;
