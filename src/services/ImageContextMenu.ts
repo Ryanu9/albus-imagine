@@ -92,6 +92,9 @@ export class ImageContextMenu extends Component {
 		// 编辑标题
 		this.addEditCaptionMenuItem(menu, img);
 
+		// 复制图片
+		this.addCopyImageMenuItem(menu, img);
+
 		// 打开源文件
 		this.addOpenSourceFileMenuItem(menu, img);
 
@@ -333,6 +336,107 @@ export class ImageContextMenu extends Component {
 				return size ? `![[${baseImage}|${position}|${size}]]` : `![[${baseImage}|${position}]]`;
 			}
 		}
+	}
+
+	private addCopyImageMenuItem(menu: Menu, img: HTMLImageElement): void {
+		menu.addItem((item) => {
+			item.setTitle("复制图片")
+				.setIcon("copy")
+				.onClick(() => void this.copyImageToClipboard(img));
+		});
+	}
+
+	private async copyImageToClipboard(img: HTMLImageElement): Promise<void> {
+		try {
+			const imagePath = this.getImagePath(img);
+			if (!imagePath) {
+				new Notice("无法获取图片路径");
+				return;
+			}
+
+			const file = this.app.vault.getAbstractFileByPath(imagePath);
+			if (!(file instanceof TFile)) {
+				new Notice("文件不存在");
+				return;
+			}
+
+			const arrayBuffer = await this.app.vault.readBinary(file);
+			const pngBlob = await this.imageToPngBlob(arrayBuffer, file.extension.toLowerCase());
+
+			await navigator.clipboard.write([
+				new ClipboardItem({ "image/png": pngBlob })
+			]);
+
+			new Notice("图片已复制到剪切板");
+		} catch (error) {
+			console.error("[ImageContextMenu] Copy image failed:", error);
+			new Notice("复制图片失败");
+		}
+	}
+
+	/**
+	 * 将图片数据转为 PNG Blob，写入剪切板。
+	 * PNG 直接包装；其他格式（JPEG、SVG 等）通过 Canvas 转换为 PNG。
+	 */
+	private imageToPngBlob(arrayBuffer: ArrayBuffer, ext: string): Promise<Blob> {
+		if (ext === "png") {
+			return Promise.resolve(new Blob([arrayBuffer], { type: "image/png" }));
+		}
+
+		return new Promise((resolve, reject) => {
+			const mimeMap: Record<string, string> = {
+				jpg: "image/jpeg",
+				jpeg: "image/jpeg",
+				gif: "image/gif",
+				bmp: "image/bmp",
+				webp: "image/webp",
+				svg: "image/svg+xml",
+				ico: "image/x-icon",
+				tif: "image/tiff",
+				tiff: "image/tiff",
+				avif: "image/avif",
+				heic: "image/heic",
+				heif: "image/heif",
+			};
+			const mime = mimeMap[ext] || "image/png";
+			const blob = new Blob([arrayBuffer], { type: mime });
+			const url = URL.createObjectURL(blob);
+
+			const image = new Image();
+			image.onload = () => {
+				const canvas = document.createElement("canvas");
+				canvas.width = image.naturalWidth || image.width || 300;
+				canvas.height = image.naturalHeight || image.height || 300;
+
+				const ctx = canvas.getContext("2d");
+				if (!ctx) {
+					URL.revokeObjectURL(url);
+					reject(new Error("Cannot get canvas context"));
+					return;
+				}
+
+				ctx.drawImage(image, 0, 0);
+				URL.revokeObjectURL(url);
+
+				canvas.toBlob(
+					(pngBlob) => {
+						if (pngBlob) {
+							resolve(pngBlob);
+						} else {
+							reject(new Error("Canvas toBlob failed"));
+						}
+					},
+					"image/png"
+				);
+			};
+
+			image.onerror = () => {
+				URL.revokeObjectURL(url);
+				reject(new Error("Failed to load image for conversion"));
+			};
+
+			image.src = url;
+		});
 	}
 
 	private addOpenSourceFileMenuItem(menu: Menu, img: HTMLImageElement): void {
