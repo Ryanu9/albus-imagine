@@ -44,20 +44,22 @@ export class ImageViewerManager {
 	}
 
 	/**
-	 * 检查是否可点击（必须按住 Ctrl 键且查看器已启用）
+	 * 检查是否可点击（根据触发模式判断）
 	 */
 	private isClickable(targetEl: HTMLImageElement, event: MouseEvent): boolean {
 		if (!targetEl || targetEl.tagName !== 'IMG') {
 			return false;
 		}
-		
-		// 必须按住 Ctrl 键
-		if (!event.ctrlKey || event.altKey || event.shiftKey) {
-			return false;
+
+		switch (this.settings.triggerMode) {
+			case 'click':
+				return true;
+			case 'ctrl-click':
+				return event.ctrlKey && !event.altKey && !event.shiftKey;
+			case 'off':
+			default:
+				return false;
 		}
-		
-		// 检查查看器是否启用
-		return this.settings.enabled;
 	}
 
 	/**
@@ -80,8 +82,8 @@ export class ImageViewerManager {
 		// 移除捕获阶段的监听
 		doc.removeEventListener('click', this.clickImageCapture, true);
 
-		// 如果禁用，不添加监听
-		if (!this.settings.enabled) {
+
+		if (this.settings.triggerMode === 'off') {
 			this.imgSelector = '';
 			return;
 		}

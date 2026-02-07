@@ -13,11 +13,19 @@ export interface ImageResizeSettings {
 }
 
 /**
+ * 图片查看器触发模式
+ * - "ctrl-click": Ctrl+点击放大（默认）
+ * - "click": 直接点击放大
+ * - "off": 关闭
+ */
+export type ImageViewerTriggerMode = "ctrl-click" | "click" | "off";
+
+/**
  * 图片查看器设置接口
  */
 export interface ImageViewerSettings {
-	/** 是否启用图片查看器 */
-	enabled: boolean;
+	/** 触发模式 */
+	triggerMode: ImageViewerTriggerMode;
 }
 
 export interface IPluginSettings {
@@ -34,7 +42,7 @@ export const DEFAULT_IMAGE_RESIZE_SETTINGS: ImageResizeSettings = {
 };
 
 export const DEFAULT_IMAGE_VIEWER_SETTINGS: ImageViewerSettings = {
-	enabled: true,
+	triggerMode: "ctrl-click",
 };
 
 export const DEFAULT_SETTINGS: IPluginSettings = {

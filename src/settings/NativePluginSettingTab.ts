@@ -455,21 +455,24 @@ export class NativePluginSettingTab extends PluginSettingTab {
 	private displayImageViewerSettings(containerEl: HTMLElement): void {
 		const group = new SettingGroup(containerEl);
 
-		// 启用查看器
+		// 图片查看器触发模式
 		group.addSetting((setting) => {
 			setting
-				.setName('启用图片查看器')
-				.setDesc('在所有位置启用 Ctrl+点击图片查看功能')
-				.addToggle((toggle) => {
-					toggle
-						.setValue(this.plugin.settings.imageViewer?.enabled !== false)
+				.setName('图片查看器')
+				.setDesc('选择点击图片时的放大查看方式')
+				.addDropdown((dropdown) => {
+					dropdown
+						.addOption('ctrl-click', 'Ctrl + 点击放大')
+						.addOption('click', '点击放大')
+						.addOption('off', '关闭')
+						.setValue(this.plugin.settings.imageViewer?.triggerMode || 'ctrl-click')
 						.onChange(async (value) => {
 							if (!this.plugin.settings.imageViewer) {
 								this.plugin.settings.imageViewer = {
-									enabled: true
+									triggerMode: 'ctrl-click'
 								};
 							}
-							this.plugin.settings.imageViewer.enabled = value;
+							this.plugin.settings.imageViewer.triggerMode = value as any;
 							await this.plugin.saveSettings();
 						});
 				});

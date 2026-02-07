@@ -28,7 +28,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 		}
 
 		// 初始化图片查看器
-		if (this.settings.imageViewer?.enabled) {
+		if (this.settings.imageViewer?.triggerMode !== 'off') {
 			this.initializeImageViewer();
 		}
 
@@ -199,8 +199,9 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 			}
 		}
 
+
 		// 更新图片查看器设置
-		if (this.settings.imageViewer?.enabled) {
+		if (this.settings.imageViewer && this.settings.imageViewer.triggerMode !== 'off') {
 			if (!this.imageViewerManager) {
 				this.initializeImageViewer();
 			} else {
@@ -208,7 +209,7 @@ export default class AlbusFigureManagerPlugin extends Plugin {
 				this.imageViewerManager.refreshViewTrigger();
 			}
 		} else {
-			// 禁用时清除管理器
+			// 关闭时清除管理器
 			if (this.imageViewerManager) {
 				this.imageViewerManager.cleanup();
 				this.imageViewerManager = null;
